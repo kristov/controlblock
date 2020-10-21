@@ -10,10 +10,12 @@ package controlblock;
 public class ConsHeap {
     private final int heap_size;
     private final int[] heap;
+    private final byte[] refcount;
     private String[] strings;
 
     public ConsHeap(int nrCons) {
         heap = new int[nrCons * 2];
+        refcount = new byte[nrCons];
         heap_size = nrCons;
         strings = new String[] {"NULL"};
     }
@@ -23,41 +25,36 @@ public class ConsHeap {
         return heap[i * 2] < 0 ? i : 0;
     }
 
-    public int car(int cons) {
-        int car = heap[cons * 2];
-        if (car <= 0) {
+    public int car(int i) {
+        return heap[i * 2];
+    }
+
+    public int cdr(int i) {
+        return heap[(i * 2) + 1];
+    }
+
+    public int cons(int a, int b) {
+        if (heap[b * 2] < 0) {
+            // b is an atom
             return 0;
         }
-        return car;
+        if (heap[b * 2] != 0) {
+            // b is not the empty list so swap a in as the first element
+            heap[(a * 2) + 1] = heap[b * 2];
+        }
+        // point the car of b to a
+        heap[b * 2] = a;
+        return b;
     }
 
-    public int cdr(int cons) {
-        int car = heap[cons * 2];
-        return heap[(car * 2) + 1];
+    /* A list is a cell whos car is another cell */
+    public int list() {
+        int i = newCons();
+        int j = newCons();
+        heap[i * 2] = j;
+        return i;
     }
-
-    /* cons('a (cons 'b (cons 'c '()))) is evaluated inner most first. The empty
-     * list is given as id=0. We find a new free cell and set it's car to 'c. We
-     * then set its cdr to 0. Then we get called again and create a new cell.
-     * We set its car to 'b and its cdr to the result of the first call. We then
-     * get called again and we create a third cell and set its car to 'a and its
-     * cdr to the result of the second call. So we end up with our memory
-     * looking like this:
-     *
-     *     0      1      2      3
-     *     [ 0, 0]['c, 0]['b, 1]['a, 2]
-     *
-     * The result of the entire eval is 3 (cons cell id=3). The car of 3 is 2,
-     * the car of 2 is 1 and the car of 1 is 0.
-     *
-     */
-    public int cons(int a, int b) {
-        int free = newCons();
-        heap[free * 2] = heap[a * 2];
-        heap[(free * 2) + 1] = b;
-        return free;
-    }
-
+    
     /* Create a new symbol (string) */
     public int newSymbol(String symbol) {
         int strIdx = addString(symbol);
@@ -68,9 +65,10 @@ public class ConsHeap {
 
     /* Find an empty cons cell */
     public int newCons() {
-        for (int i = 2; i < heap_size; i += 2) {
-            if (heap[i * 2] == 0) {
-                return i;
+        for (int z = 1; z < heap_size; z++) {
+            if (refcount[z] == 0) {
+                refcount[z] = 1;
+                return z;
             }
         }
         return 0;
@@ -97,7 +95,14 @@ public class ConsHeap {
         int n = i;
         while (n > 0) {
             if (atom(n) > 0) {
-                System.out.println(strings[0 - heap[i * 2]]);
+                System.out.print(strings[0 - heap[n * 2]]);
+            }
+            else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
+            }
+            else {
+                System.out.print("(");
+                dumpCons(indent + 2, heap[n * 2]);
+                System.out.print(")");
             }
             n = heap[(n * 2) + 1];
         }
@@ -106,5 +111,8 @@ public class ConsHeap {
     /* recursively dumps something */
     public void dump(int i) {
         dumpCons(0, i);
+        //for (int z = 0; z < heap_size; z += 2) {
+        //    System.out.print("[" + heap[z] + ":" + heap[z + 1] + "] ");
+        //}
     }
 }
