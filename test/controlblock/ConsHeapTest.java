@@ -48,6 +48,6 @@ public class ConsHeapTest {
     }
 
     @Test
-    public void testAppendList() {
+    public void testAppend() {
     }
 }

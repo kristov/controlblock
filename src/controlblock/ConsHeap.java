@@ -25,14 +25,6 @@ public class ConsHeap {
         return heap[i * 2] < 0 ? i : 0;
     }
 
-    public int car(int i) {
-        return heap[i * 2];
-    }
-
-    public int cdr(int i) {
-        return heap[(i * 2) + 1];
-    }
-
     public int cons(int a, int b) {
         if (heap[b * 2] < 0) {
             // b is an atom
@@ -55,7 +47,14 @@ public class ConsHeap {
         return i;
     }
 
-    public void appendList(int a, int b) {
+    public int pair(int a, int b) {
+        int p = newCons();
+        heap[p * 2] = a;
+        heap[(a * 2) + 1] = b;
+        return p;
+    }
+
+    public void append(int a, int b) {
         if (heap[a * 2] == 0) {
             heap[a * 2] = b;
             return;
@@ -65,6 +64,33 @@ public class ConsHeap {
             a = heap[(a * 2) + 1];
         }
         heap[(a * 2) + 1] = b;
+    }
+
+    /* (setf place (cons item place)) */
+    public void push() {
+    }
+
+    /* (prog1 (car place) (setf place (cdr place))) */
+    public void pop(int i) {
+        
+    }
+
+    public int car(int i) {
+        if (heap[i * 2] == 0) {
+            return 0;
+        }
+        return heap[i * 2];
+    }
+
+    public int cdr(int i) {
+        if (heap[i * 2] == 0) {
+            return 0;
+        }
+        return heap[(heap[i * 2] * 2) + 1];
+    }
+
+    public boolean empty(int i) {
+        return heap[i * 2] == 0;
     }
 
     /* Create a new symbol (string) */

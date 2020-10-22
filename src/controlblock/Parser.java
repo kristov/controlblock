@@ -11,7 +11,7 @@ public class Parser {
     private void appendIfWord(ConsHeap heap, int list, StringBuilder word) {
         if (word.length() > 0) {
             int symbol = heap.newSymbol(word.toString());
-            heap.appendList(list, symbol);
+            heap.append(list, symbol);
             word.delete(0, word.length());
         }
     }
@@ -47,14 +47,14 @@ public class Parser {
                 stack_ptr++;
                 stack[stack_ptr] = list;
                 int quote = heap.newSymbol("quote");
-                heap.appendList(ql, quote);
-                heap.appendList(list, ql);
+                heap.append(ql, quote);
+                heap.append(list, ql);
                 list = ql;
             }
             if (c == ')') {
                 appendIfWord(heap, list, word);
                 int prev = stack[--stack_ptr];
-                heap.appendList(prev, list);
+                heap.append(prev, list);
                 list = prev;
                 word_complete = true;
             }
