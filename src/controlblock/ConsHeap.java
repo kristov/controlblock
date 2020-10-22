@@ -54,7 +54,19 @@ public class ConsHeap {
         heap[i * 2] = j;
         return i;
     }
-    
+
+    public void appendList(int a, int b) {
+        if (heap[a * 2] == 0) {
+            heap[a * 2] = b;
+            return;
+        }
+        a = heap[a * 2];
+        while (heap[(a * 2) + 1] > 0) {
+            a = heap[(a * 2) + 1];
+        }
+        heap[(a * 2) + 1] = b;
+    }
+
     /* Create a new symbol (string) */
     public int newSymbol(String symbol) {
         int strIdx = addString(symbol);
@@ -96,13 +108,20 @@ public class ConsHeap {
         while (n > 0) {
             if (atom(n) > 0) {
                 System.out.print(strings[0 - heap[n * 2]]);
+                if (heap[(n * 2) + 1] > 0) {
+                    System.out.print(" ");
+                }
             }
             else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
+                System.out.print("()");
             }
             else {
                 System.out.print("(");
                 dumpCons(indent + 2, heap[n * 2]);
                 System.out.print(")");
+                if (heap[(n * 2) + 1] > 0) {
+                    System.out.print(" ");
+                }
             }
             n = heap[(n * 2) + 1];
         }
@@ -111,8 +130,15 @@ public class ConsHeap {
     /* recursively dumps something */
     public void dump(int i) {
         dumpCons(0, i);
-        //for (int z = 0; z < heap_size; z += 2) {
-        //    System.out.print("[" + heap[z] + ":" + heap[z + 1] + "] ");
-        //}
+        System.out.println();
+    }
+
+    public void dumpHeap() {
+        for (int z = 0; z < heap_size; z++) {
+            if (refcount[z] > 0) {
+                System.out.print(z + "[" + heap[z * 2] + ":" + heap[(z * 2) + 1] + "] ");
+            }
+        }
+        System.out.println();
     }
 }
