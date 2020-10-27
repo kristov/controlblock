@@ -47,7 +47,7 @@ public class ConsHeap {
         return i;
     }
 
-    public int pair(int a, int b) {
+    public int list2(int a, int b) {
         int p = newCons();
         heap[p * 2] = a;
         heap[(a * 2) + 1] = b;
@@ -110,6 +110,10 @@ public class ConsHeap {
             }
         }
         return 0;
+    }
+
+    public String atomString(int n) {
+        return strings[0 - heap[n * 2]];
     }
 
     /* Add a string to the global store of them */

@@ -9,16 +9,7 @@ public class Process {
 
     public Process() {
         heap = new ConsHeap(1024);
-        env = heap.list(); // where user-defined functions will go
-        stack = heap.list(); // a stack for the evaluator
-
-        // Store the stack in the environment so the user can see it
-        int stacke = heap.pair(heap.newSymbol("$STACK"), stack);
-        heap.append(env, stacke);
-        
-        // Create an evaluator
-        evaluator = new Evaluator(heap, stack, env);
-        
+        evaluator = new Evaluator(heap);
         parser = new Parser();
     }
 
