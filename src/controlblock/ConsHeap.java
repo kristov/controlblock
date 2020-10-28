@@ -21,13 +21,12 @@ public class ConsHeap {
     }
 
     /* Returns the atom (i) if an atom, or the empty list (0) */
-    public int atom(int i) {
-        return heap[i * 2] < 0 ? i : 0;
+    public boolean atom(int i) {
+        return heap[i * 2] < 0;
     }
 
     public int cons(int a, int b) {
-        if (heap[b * 2] < 0) {
-            // b is an atom
+        if (atom(b)) {
             return 0;
         }
         if (heap[b * 2] != 0) {
@@ -39,12 +38,10 @@ public class ConsHeap {
         return b;
     }
 
-    /* A list is a cell whos car is another cell */
-    public int list() {
-        int i = newCons();
-        int j = newCons();
-        heap[i * 2] = j;
-        return i;
+    public int list1(int a) {
+        int p = newCons();
+        heap[p * 2] = a;
+        return p;
     }
 
     public int list2(int a, int b) {
@@ -52,6 +49,39 @@ public class ConsHeap {
         heap[p * 2] = a;
         heap[(a * 2) + 1] = b;
         return p;
+    }
+
+    public int list3(int a, int b, int c) {
+        int p = newCons();
+        heap[p * 2] = a;
+        heap[(a * 2) + 1] = b;
+        heap[(b * 2) + 1] = c;
+        return p;
+    }
+
+    public boolean eq(int a, int b) {
+        if (atom(a) && atom(b)) {
+            if (atomString(a).equals(atomString(b))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // a is a list of k/v pairs
+    public int pairGet(int a, int b) {
+        if (heap[a * 2] <= 0) {
+            return 0;
+        }
+        a = heap[a * 2];
+        do {
+            int k = heap[a * 2];
+            if (eq(k, b)) {
+                return heap[(k * 2) + 1];
+            }
+            a = heap[(a * 2) + 1];
+        } while (a > 0);
+        return 0;
     }
 
     public void append(int a, int b) {
@@ -67,26 +97,30 @@ public class ConsHeap {
     }
 
     /* (setf place (cons item place)) */
-    public void push() {
+    public void push(int list, int item) {
+        cons(item, list);
+        // ideally cons returns a new list and this function doesn't
     }
 
     /* (prog1 (car place) (setf place (cdr place))) */
-    public void pop(int i) {
-        
+    public int pop(int i) {
+        int car = car(i);
+        int cdr = cdr(car);
+        heap[i * 2] = cdr;
+        heap[(car * 2) + 1] = 0;
+        // deref car
+        return car;
     }
 
     public int car(int i) {
-        if (heap[i * 2] == 0) {
+        if (heap[i * 2] < 0) {
             return 0;
         }
         return heap[i * 2];
     }
 
     public int cdr(int i) {
-        if (heap[i * 2] == 0) {
-            return 0;
-        }
-        return heap[(heap[i * 2] * 2) + 1];
+        return heap[(i * 2) + 1];
     }
 
     public boolean empty(int i) {
@@ -101,6 +135,12 @@ public class ConsHeap {
         return i;
     }
 
+    public int copy(int i) {
+        int n = newCons();
+        heap[n * 2] = heap[i * 2];
+        return n;
+    }
+
     /* Find an empty cons cell */
     public int newCons() {
         for (int z = 1; z < heap_size; z++) {
@@ -110,6 +150,13 @@ public class ConsHeap {
             }
         }
         return 0;
+    }
+
+    public boolean symbolEq(int n, String symbol) {
+        if (!atom(n)) {
+            return false;
+        }
+        return atomString(n).equals(symbol);
     }
 
     public String atomString(int n) {
@@ -132,18 +179,59 @@ public class ConsHeap {
         strings = newStrings;
         return at;
     }
+    
+    public String pairStringGet(int a, String b) {
+        if (heap[a * 2] <= 0) {
+            return "";
+        }
+        a = heap[a * 2];
+        do {
+            int k = heap[a * 2];
+            String key = atomString(k);
+            if (key.equals(b)) {
+                return atomString(cdr(k));
+            }
+            a = heap[(a * 2) + 1];
+        } while (a > 0);
+        return "";
+    }
+
+    private int plus_e(int env) {
+        String a = pairStringGet(env, "a");
+        String b = pairStringGet(env, "b");
+        Float r = Float.valueOf(a) + Float.valueOf(b);
+        return newSymbol(r.toString());
+    }
+
+    public int run(int symbol, int env) {
+        String sym = atomString(symbol);
+        if (sym.equals("plus_e")) {
+            return plus_e(env);
+        }
+        return 0;
+    }
+
+    public int buildEnv() {
+        int env = newCons();
+        append(env, list2(newSymbol("car"), list3(newSymbol("lambda"), list1(newSymbol("a")), newSymbol("car_e"))));
+        append(env, list2(newSymbol("cdr"), list3(newSymbol("lambda"), list1(newSymbol("a")), newSymbol("cdr_e"))));
+        append(env, list2(newSymbol("cons"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("cons_e"))));
+        append(env, list2(newSymbol("+"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("plus_e"))));
+        append(env, list2(newSymbol("eq"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("eq_e"))));
+        return env;
+    }
 
     public void dumpCons(int indent, int i) {
         int n = i;
         while (n > 0) {
-            if (atom(n) > 0) {
+            if (atom(n)) {
                 System.out.print(strings[0 - heap[n * 2]]);
                 if (heap[(n * 2) + 1] > 0) {
                     System.out.print(" ");
                 }
             }
             else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
-                System.out.print("()");
+                //System.out.print("()");
             }
             else {
                 System.out.print("(");
@@ -167,6 +255,20 @@ public class ConsHeap {
         for (int z = 0; z < heap_size; z++) {
             if (refcount[z] > 0) {
                 System.out.print(z + "[" + heap[z * 2] + ":" + heap[(z * 2) + 1] + "] ");
+            }
+        }
+        System.out.println();
+    }
+
+    public void dumpHeapWithStrings() {
+        for (int z = 0; z < heap_size; z++) {
+            if (refcount[z] > 0) {
+                if (heap[z * 2] < 0) {
+                    System.out.print(z + "[" + strings[0 - (heap[z * 2])] + ":" + heap[(z * 2) + 1] + "] ");
+                }
+                else {
+                    System.out.print(z + "[" + heap[z * 2] + ":" + heap[(z * 2) + 1] + "] ");
+                }
             }
         }
         System.out.println();

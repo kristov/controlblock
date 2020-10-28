@@ -15,12 +15,11 @@ public class Process {
 
     public void evalString(String chunk) {
         int e = parser.parseString(heap, chunk);
-        heap.dump(e);
-        eval(e);
-        heap.dumpHeap();
-    }
-
-    public void eval(int e) {
         evaluator.eval(e);
+    }
+    
+    public String result() {
+        int result = evaluator.result();
+        return heap.atomString(result);
     }
 }
