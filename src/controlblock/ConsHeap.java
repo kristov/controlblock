@@ -68,6 +68,10 @@ public class ConsHeap {
         return false;
     }
 
+    public boolean isTrue(int n) {
+        return true;
+    }
+
     // a is a list of k/v pairs
     public int pairGet(int a, int b) {
         if (heap[a * 2] <= 0) {

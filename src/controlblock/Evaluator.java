@@ -58,8 +58,7 @@ class Evaluator {
                     heap.push(vals, heap.run(body, nenv));
                 }
                 else {
-                    int nfr = heap.list2(body, nenv);
-                    heap.push(stack, nfr);
+                    heap.push(stack, heap.list2(body, nenv));
                 }
                 return;
             }
@@ -67,9 +66,22 @@ class Evaluator {
                 e = heap.cdr(e);
             }
             else if (heap.symbolEq(car, "cond")) {
+                int cond = heap.pop(e);
+                int first = heap.pop(e);
+                if (first == 0) {
+                    return;
+                }
+                heap.push(stack, heap.list2(heap.list2(cond, e), env));
+                heap.push(stack, heap.list2(heap.list2(heap.newSymbol("then"), heap.cdr(first)), env));
+                heap.push(stack, heap.list2(heap.car(first), env));
                 return;
             }
             else if (heap.symbolEq(car, "then")) {
+                int test = heap.pop(vals);
+                if (heap.isTrue(test)) {
+                    heap.pop(stack); // remove cond
+                    heap.push(stack, heap.list2(heap.cdr(e), env));
+                }
                 return;
             }
             else {

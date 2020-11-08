@@ -13,4 +13,13 @@ public class ProcessTest {
         String r = proc.result();
         assertEquals("7.0", r);
     }
+
+    @Test
+    public void testCond() {
+        String chunk = "cond (1 4) (2 5)";
+        Process proc = new Process();
+        proc.evalString(chunk);
+        String r = proc.result();
+        assertEquals("4", r);
+    }
 }
