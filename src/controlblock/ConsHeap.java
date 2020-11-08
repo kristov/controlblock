@@ -60,6 +60,10 @@ public class ConsHeap {
     }
 
     public boolean isTrue(int n) {
+        if (atom(n)) {
+            // decide if "0" and "NULL" are true or not :-/
+            return true;
+        }
         return true;
     }
 

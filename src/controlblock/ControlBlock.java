@@ -5,23 +5,27 @@ import java.io.InputStreamReader;
 
 public class ControlBlock {
     public static void main(String[] args) {
-        Process proc = new Process();
+        ConsHeap heap = new ConsHeap(1024);
+        Evaluator evaluator = new Evaluator(heap);
+        Parser parser = new Parser();
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
-            String line = br.readLine();
-            while (line != null) {
-                proc.debugEvalString(line);
-                line = br.readLine();
-                while (line != null) {
-                    if (!proc.debugEvalStep()) {
-                        line = null;
-                        continue;
-                    }
-                    proc.dumpAll();
-                    line = br.readLine();
+            System.out.print(">> ");
+            String chunk = br.readLine();
+            while (chunk != null) {
+                int e = parser.parseString(heap, chunk);
+                evaluator.prepareStack(e);
+                evaluator.dumpAll();
+                br.readLine();
+                while (evaluator.evalStep()) {
+                    evaluator.dumpAll();
+                    br.readLine();
                 }
-                System.out.println(proc.result());
-                line = br.readLine();
+                System.out.print("<< ");
+                int result = evaluator.result();
+                heap.dump(result);
+                System.out.print(">> ");
+                chunk = br.readLine();
             }
         }
         catch (Exception e) {
