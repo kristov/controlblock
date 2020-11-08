@@ -10,7 +10,16 @@ public class ControlBlock {
         try {
             String line = br.readLine();
             while (line != null) {
-                proc.evalString(line);
+                proc.debugEvalString(line);
+                line = br.readLine();
+                while (line != null) {
+                    if (!proc.debugEvalStep()) {
+                        line = null;
+                        continue;
+                    }
+                    proc.dumpAll();
+                    line = br.readLine();
+                }
                 System.out.println(proc.result());
                 line = br.readLine();
             }

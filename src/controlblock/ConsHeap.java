@@ -25,17 +25,8 @@ public class ConsHeap {
         return heap[i * 2] < 0;
     }
 
-    public int cons(int a, int b) {
-        if (atom(b)) {
-            return 0;
-        }
-        if (heap[b * 2] != 0) {
-            // b is not the empty list so swap a in as the first element
-            heap[(a * 2) + 1] = heap[b * 2];
-        }
-        // point the car of b to a
-        heap[b * 2] = a;
-        return b;
+    public void cons(int a, int b) {
+        heap[(a * 2) + 1] = b;
     }
 
     public int list1(int a) {
@@ -102,8 +93,16 @@ public class ConsHeap {
 
     /* (setf place (cons item place)) */
     public void push(int list, int item) {
-        cons(item, list);
-        // ideally cons returns a new list and this function doesn't
+        if (atom(list)) {
+            return;
+        }
+        if (heap[list * 2] != 0) {
+            // list is not the empty list so swap item in as the first element
+            heap[(item * 2) + 1] = heap[list * 2];
+        }
+        // point the car of b to a
+        heap[list * 2] = item;
+        return;
     }
 
     /* (prog1 (car place) (setf place (cdr place))) */

@@ -17,14 +17,24 @@ class Evaluator {
         return heap.pop(vals);
     }
 
-    public void eval(int start) {
+    public void prepareStack(int start) {
         int env = heap.newCons();
         int frame = heap.list2(start, env);
-        heap.cons(frame, stack);
-        stack_eval();
-        while (!heap.empty(stack)) {
-            stack_eval();
-        }
+        heap.push(stack, frame);
+    }
+
+    public void eval(int start) {
+        prepareStack(start);
+        evalStep();
+        while (evalStep()) {}
+    }
+
+    public void dumpAll() {
+        System.out.print("stack: ");
+        heap.dump(stack);
+        System.out.println();
+        System.out.print("vals: ");
+        heap.dump(vals);
     }
 
     private int resolve_env(int env, int e) {
@@ -32,9 +42,9 @@ class Evaluator {
         return (r > 0) ? r : e;
     }
 
-    public void stack_eval() {
+    public boolean evalStep() {
         if (heap.empty(stack)) {
-            return;
+            return false;
         }
         int fr = heap.pop(stack);
         int e = heap.car(fr);
@@ -60,7 +70,7 @@ class Evaluator {
                 else {
                     heap.push(stack, heap.list2(body, nenv));
                 }
-                return;
+                return true;
             }
             else if (heap.symbolEq(car, "quote")) {
                 e = heap.cdr(e);
@@ -69,20 +79,22 @@ class Evaluator {
                 int cond = heap.pop(e);
                 int first = heap.pop(e);
                 if (first == 0) {
-                    return;
+                    return true;
                 }
-                heap.push(stack, heap.list2(heap.list2(cond, e), env));
-                heap.push(stack, heap.list2(heap.list2(heap.newSymbol("then"), heap.cdr(first)), env));
-                heap.push(stack, heap.list2(heap.car(first), env));
-                return;
+                int test = heap.car(first);
+                heap.push(e, cond);
+                heap.push(stack, heap.list2(e, env));
+                heap.push(stack, heap.list2(heap.list2(heap.newSymbol("then"), heap.cdr(test)), env));
+                heap.push(stack, heap.list2(test, env));
+                return true;
             }
             else if (heap.symbolEq(car, "then")) {
                 int test = heap.pop(vals);
                 if (heap.isTrue(test)) {
                     heap.pop(stack); // remove cond
-                    heap.push(stack, heap.list2(heap.cdr(e), env));
+                    heap.push(stack, heap.list2(heap.cdr(car), env));
                 }
-                return;
+                return true;
             }
             else {
                 e = heap.car(e);
@@ -94,5 +106,6 @@ class Evaluator {
             }
         }
         heap.push(vals, e);
+        return true;
     }
 }

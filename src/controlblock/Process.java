@@ -4,8 +4,6 @@ public class Process {
     private final ConsHeap heap;
     private final Evaluator evaluator;
     private final Parser parser;
-    private int env = 0;
-    private int stack = 0;
 
     public Process() {
         heap = new ConsHeap(1024);
@@ -17,7 +15,20 @@ public class Process {
         int e = parser.parseString(heap, chunk);
         evaluator.eval(e);
     }
-    
+
+    public void debugEvalString(String chunk) {
+        int e = parser.parseString(heap, chunk);
+        evaluator.prepareStack(e);
+    }
+
+    public void dumpAll() {
+        evaluator.dumpAll();
+    }
+
+    public boolean debugEvalStep() {
+        return evaluator.evalStep();
+    }
+
     public String result() {
         int result = evaluator.result();
         return heap.atomString(result);
