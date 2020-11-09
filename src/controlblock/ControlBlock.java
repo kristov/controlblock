@@ -1,6 +1,7 @@
 package controlblock;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.InputStreamReader;
 
 public class ControlBlock {
@@ -8,24 +9,24 @@ public class ControlBlock {
         ConsHeap heap = new ConsHeap(1024);
         Evaluator evaluator = new Evaluator(heap);
         Parser parser = new Parser();
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        Console console = System.console();
         try {
             System.out.print(">> ");
-            String chunk = br.readLine();
+            String chunk = console.readLine();
             while (chunk != null) {
                 int e = parser.parseString(heap, chunk);
                 evaluator.prepareStack(e);
                 evaluator.dumpAll();
-                br.readLine();
+                console.readLine();
                 while (evaluator.evalStep()) {
                     evaluator.dumpAll();
-                    br.readLine();
+                    console.readLine();
                 }
                 System.out.print("<< ");
                 int result = evaluator.result();
                 heap.dump(result);
                 System.out.print(">> ");
-                chunk = br.readLine();
+                chunk = console.readLine();
             }
         }
         catch (Exception e) {
