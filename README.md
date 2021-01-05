@@ -1,6 +1,10 @@
 # Controlblock
 
-Experiment of a Lisp interpreter in Java. Some features:
+Experiment of a Lisp interpreter in Java.
+
+![funny lisp](https://github.com/kristov/controlblock/blob/master/lisplogo_warning.png?raw=true)
+
+Some features:
 
 ## The "eval" function is not recursive
 
