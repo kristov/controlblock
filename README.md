@@ -112,3 +112,21 @@ In psuedo code:
         Push it onto the value stack
     }
 
+### What is a function?
+
+Imagine this function definition:
+
+    (defun sum (x y)
+        (+ x y))
+
+Meaning: create a new function called "sum", it takes two arguments called "x" and "y". The body of the function contains a single expression that adds x and y, "returning" the result. The "defun" function (or macro) takes the arglist and body of the function and assigns it into a key in the current environment. When we want to call the function we would:
+
+    (sum 3 4)
+
+So first we push 4 and 3 onto the value stack (since they don't resolve to expressions), and then we look up "sum" in the symbol table and discover it resolves to a lambda expression, or function expression.
+
+When we evaluate this function we push the body of the function onto the expression stack. This "queues" the logic in the function to be evaluated. However we need to somehow customize the values for "x" and "y" in the function body. We could do a search-and-replace but then we would be modifying the structure of the function, so next time the symbols "x" and "y" would no longer be there. Instead we create a new "environment" and we bind the symbols "x" and "y" in this environment to the values passed.
+
+When the expression `(+ x y)` is evaluated the symbols "x" and "y" are looked up in this new environment. Because they exists and have been bound to values they are replaced in `evalStep()` with their values, and pushed onto the value stack. When the "+" symbol is encountered it is discovered in the enviromnment (this time the global "ENV") as a built-in and the values are popped from the value stack.
+
+
