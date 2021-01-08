@@ -65,7 +65,7 @@ class Evaluator {
                 } while (arg != 0);
                 int body = heap.cdr(heap.cdr(car));
                 if (heap.atom(body)) {
-                    heap.push(vals, heap.run(body, nenv));
+                    heap.push(vals, heap.dispatch(body, nenv));
                 }
                 else {
                     heap.push(stack, heap.list2(body, nenv));

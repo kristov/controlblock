@@ -210,7 +210,7 @@ public class ConsHeap {
         return newSymbol(r.toString());
     }
 
-    public int run(int symbol, int env) {
+    public int dispatch(int symbol, int env) {
         String sym = atomString(symbol);
         if (sym.equals("plus_e")) {
             return plus_e(env);
