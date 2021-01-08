@@ -63,3 +63,52 @@ An optimization I would like to make is to split a single 32 bit number in the c
 ## There is no type system
 
 All values are stored as strings. Values are converted into native types inside the builtin functions. This is not a performance language ;-)
+
+## How it works (roughly)
+
+These are two stacks involved in the `evalStep()` function: 1) an expression stack to store the upcoming expressions than need to be evaluated, and 2) a "value" stack which stores the results of previously evaluated expressions (expressions that have been reduced to an atom). For example:
+
+    (+ 3 4)
+
+The "3" and the "4" will end up getting pushed onto the value stack. When the "+" atom is evaluated it will pop the two arguments from the value stack. Now consider this expression:
+
+    (+ 5 (+ 2 3))
+
+This cries out for a recursive evaluation because obviously we need to evaluate the "+ 2 3" before we evaluate the outer expression. In this implementation the "+ 2 3" expression will be pushed onto the expression stack, and eventually its value will get pushed onto the value stack. By the time we get to evaluating the outer expression the value stack contains "5" and "5", so the outer expression will pop these values from the value stack.
+
+When an expression is pushed onto the expression stack it is pushed as a pair. The first item in the pair is the expression, and the second is an "environment". The environment is a key-value list of symbols.
+
+### Overview
+
+The `evalStep()` function works approximately like so:
+
+If the expression being evaluated is an atom first try to resolve the atom to something else using the symbol table. If it's still an atom then push it onto the value stack. If it was converted into an expression (or it was an expression all along) then try to handle a few hard-coded constructs (lambda, cond, quote). If it wasn't one of those then just push all the sub-expressions onto the expression stack.
+
+In psuedo code:
+
+    Pop the next pair from the expression stack
+    Get the expression from the pair (first item)
+    Get the environment from the pair (second item)
+    If the expression is an atom (a string) {
+        Try to convert the atom into an expression using the environment. This
+        is how function names are expanded into their lambda bodies.
+    }
+    Check the expression again and if it's not an atom {
+        Check if the expression is a lambda, and if so {
+            Create a new environment and pop all the argument values from the
+            value stack into the enviromnent, using the lamda parameter names
+            as keys (AKA: binding).
+            If the body of the lambda is an atom it is a built-in so dispatch
+            it.
+            Otherwise push the body of the lambda onto the expression stack
+            with the new environment.
+        } Otherwise {
+            Process some other structures like quote and cond
+        } Otherwise {
+            Loop through the expression and push the sub-expressions onto the
+            expression stack, with the current environment.
+        }
+    } Otherwise if it is an atom {
+        Push it onto the value stack
+    }
+
