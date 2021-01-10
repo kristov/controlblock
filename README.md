@@ -129,4 +129,56 @@ When we evaluate this function we push the body of the function onto the express
 
 When the expression `(+ x y)` is evaluated the symbols "x" and "y" are looked up in this new environment. Because they exists and have been bound to values they are replaced in `evalStep()` with their values, and pushed onto the value stack. When the "+" symbol is encountered it is discovered in the enviromnment (this time the global "ENV") as a built-in and the values are popped from the value stack.
 
+## Special forms
 
+There are X special forms which form the basis of evaluation. These are:
+
+### `lambda`
+
+A `lambda` expression is a function, defined by argument symbols and a body of expressions to be evaluated.
+
+    (lambda <args> <body>)
+
+The expression is evaluated by popping values off the value stack and assigning them by name into an environment according to the symbols in  `<args>`. This new environment and the body of the lambda is pushed onto the evaluation stack. As expressions in the body are evaluated symbol lookup is done in this new environment.
+
+### `bind`
+
+The `bind` expression forms the basis of scoping. When a lambda is executed its body is pushed onto the evaluation stack along with an environment of symbols. Symbols referenced within the function are resolved using this environment, and `bind` can be used to change this environment:
+
+    (bind <env> <expression>)
+
+When evaluated the `<expression>` is pushed onto the evaluation stack with the `<env>` set as the environment. The `<expression>` could be a lambda expression (or any expression) and when evaluated the new `<env>` will be used for symbol resolution. After evaluation the expression is popped off the stack and the previous `<env>` restored.
+
+### `quote`
+
+The `quote` expression simply pushes the value following the `quote` keyword onto the value stack instead of the expression stack. Normally only atoms are pushed onto the value stack, and everything else is evaluated.
+
+    (quote (a b c))
+
+### `then`
+
+The `then` expression mostly makes sense only in combination with `cond`:
+
+    (then <expression>)
+
+A value is popped off the value stack, and if true the next expression under the `then` on the expression stack is popped and discarded (probably being a `cond`) and replaced by the `<expression>`. If false the expression falls through to evaluate the `cond` again. You could use `then` without `cond` to make a simple if-then-else branch by manipulating the expression stack:
+
+    push <else expression>
+    push (then <then expression>)
+    push <test expression>
+
+First the test is run and the result pushed on the value stack. The `then` expression is then evaluated and if true the `<else expression>` is discarded and replaced with `<then expression>`. If false the `<else expression>` remains on the stack and is evaluated next.
+
+### `cond`
+
+The `cond` expression is used for conditional evaluation (branching):
+
+    (cond (<test1> <expression1>) (<test2> <expression2>) ...)
+
+The first test-expression pair is popped from the cond list, then the `cond` and the remaining test pairs are put back onto the expression stack. A new `then` expression is pushed on top of that with the expression to be evaluated if true. Then the test expression is pushed for evaluation (which should leave a true or false value on the value stack).
+
+If the `then` expression finds a true value after evaluation of the test, the `cond` underneath it is discarded and the expression pushed onto the expression stack for evaluation. If the test is false the `cond` underneath on the expression stack is evaluated again, this time without the first test pair - this continues for as long as there are test-expression pairs and the tests continue to evaluate to false.
+
+## Importing functions from packages
+
+When lambda symbols from other package environments are imported into the current environment we need to somehow include a reference to the other environment, so that when we evaluate the body of that lambda, symbol resolution uses that other package's environment and not whatever environment is current.
