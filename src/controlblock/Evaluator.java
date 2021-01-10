@@ -72,6 +72,12 @@ class Evaluator {
                 }
                 return true;
             }
+            else if (heap.symbolEq(car, "bind")) {
+                int nenv = heap.cdr(car);
+                int body = heap.cdr(nenv);
+                heap.push(stack, heap.list2(body, nenv));
+                return true;
+            }
             else if (heap.symbolEq(car, "quote")) {
                 e = heap.cdr(e);
             }
