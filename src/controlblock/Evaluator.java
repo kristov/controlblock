@@ -61,13 +61,13 @@ class Evaluator {
                 int nvals = heap.newCons();
                 int arg = heap.car(heap.cdr(car));
                 do {
-                    int val = heap.pop(vals);
+                    int val = heap.pop(values);
                     heap.append(nvals, heap.list2(heap.copy(arg), val));
                     arg = heap.cdr(arg);
                 } while (arg != 0);
                 int body = heap.cdr(heap.cdr(car));
                 if (heap.atom(body)) {
-                    heap.push(vals, heap.dispatch(body, nvals));
+                    heap.push(values, heap.dispatch(body, nvals));
                 }
                 else {
                     heap.push(stack, heap.list3(body, env, nvals));
@@ -111,9 +111,10 @@ class Evaluator {
                     heap.push(stack, nfr);
                     e = heap.cdr(e);
                 } while (e != 0);
+                return true;
             }
         }
-        heap.push(values, e);
+        heap.push(values, heap.copy(e));
         return true;
     }
 }
