@@ -1,6 +1,10 @@
 # Controlblock
 
-Experiment of a Lisp interpreter in Java.
+Experiment of a Lisp interpreter in Java. To play with this compile it (I don't know how to do that - NetBeans does it for me) and then run:
+
+    java -jar dist/ControlBlock.jar
+
+You get dumped into a prompt `>>`. Type `+ 2 3` and press `enter`. Keep pressing enter (each key press will do one evaluation loop). Each time you press enter it will dump the expression stack and the values stack.
 
 ![funny lisp](https://github.com/kristov/controlblock/blob/master/lisplogo_warning.png?raw=true)
 
