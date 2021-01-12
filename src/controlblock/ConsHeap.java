@@ -238,7 +238,7 @@ public class ConsHeap {
                 }
             }
             else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
-                //System.out.print("()");
+                System.out.print("()");
             }
             else {
                 System.out.print("(");
