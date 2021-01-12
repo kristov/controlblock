@@ -82,6 +82,8 @@ class Evaluator {
             }
             else if (heap.symbolEq(car, "quote")) {
                 e = heap.cdr(e);
+                heap.push(values, heap.copy(e));
+                return true;
             }
             else if (heap.symbolEq(car, "cond")) {
                 int cond = heap.pop(e);
