@@ -85,6 +85,9 @@ class Evaluator {
                 heap.push(values, e);
                 return true;
             }
+            else if (heap.symbolEq(car, "setq")) {
+                // (set (quote *foo*) 42)
+            }
             else if (heap.symbolEq(car, "cond")) {
                 int cond = heap.pop(e);
                 int first = heap.pop(e);
@@ -95,6 +98,14 @@ class Evaluator {
                 heap.push(e, cond);
                 heap.push(stack, heap.list3(e, env, vals));
                 heap.push(stack, heap.list3(heap.list2(heap.newSymbol("then"), heap.cdr(test)), env, vals));
+                heap.push(stack, heap.list3(test, env, vals));
+                return true;
+            }
+            else if (heap.symbolEq(car, "while")) {
+                int test = heap.cdr(e);
+                int body = heap.cdr(test);
+                heap.push(stack, heap.list3(e, env, vals)); // push original while again
+                heap.push(stack, heap.list3(heap.list2(heap.newSymbol("then"), heap.cdr(body)), env, vals));
                 heap.push(stack, heap.list3(test, env, vals));
                 return true;
             }

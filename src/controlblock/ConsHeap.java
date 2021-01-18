@@ -83,6 +83,25 @@ public class ConsHeap {
         return 0;
     }
 
+    public int pairSet(int a, int b, int v) {
+        if (heap[a * 2] <= 0) {
+            return 0;
+        }
+        a = heap[a * 2];
+        while (a > 0) {
+            int k = heap[a * 2];
+            if (eq(k, b)) {
+                a = heap[(a * 2) + 1];
+                // deref the symbol a
+                heap[a * 2] = v;
+                return a;
+            }
+            a = heap[(a * 2) + 1];
+        }
+        append(a, v);
+        return a;
+    }
+
     public void append(int a, int b) {
         if (heap[a * 2] == 0) {
             heap[a * 2] = b;
