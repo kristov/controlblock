@@ -67,7 +67,7 @@ public class ConsHeapTest {
         int list = heap.newCons();
         heap.append(list, p1);
         heap.append(list, p2);
-        int result = heap.pairGet(list, look);
+        int result = heap.pairGet(list, "key2");
         assertEquals(v2, result);
     }
     

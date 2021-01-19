@@ -15,7 +15,7 @@ public class ControlBlock {
             String chunk = console.readLine();
             while (chunk != null) {
                 int e = parser.parseString(heap, chunk);
-                evaluator.prepareStack(e);
+                evaluator.prepareFirstFrame(e);
                 evaluator.dumpAll();
                 console.readLine();
                 while (evaluator.evalStep()) {

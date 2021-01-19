@@ -20,7 +20,7 @@ public class ConsHeap {
         strings = new String[] {"NULL"};
     }
 
-    /* Returns the atom (i) if an atom, or the empty list (0) */
+    /* Returns the atom (i) if an atom */
     public boolean atom(int i) {
         return heap[i * 2] < 0;
     }
@@ -39,6 +39,8 @@ public class ConsHeap {
         int p = newCons();
         heap[p * 2] = a;
         heap[(a * 2) + 1] = b;
+        refcount[a]++;
+        refcount[b]++;
         return p;
     }
 
@@ -47,6 +49,9 @@ public class ConsHeap {
         heap[p * 2] = a;
         heap[(a * 2) + 1] = b;
         heap[(b * 2) + 1] = c;
+        refcount[a]++;
+        refcount[b]++;
+        refcount[c]++;
         return p;
     }
 
@@ -67,38 +72,65 @@ public class ConsHeap {
         return true;
     }
 
-    // a is a list of k/v pairs
-    public int pairGet(int a, int b) {
-        if (heap[a * 2] <= 0) {
+    public int appendCons(int cons, int item) {
+        while (this.heap[(cons * 2) + 1] > 0) {
+            cons = this.heap[(cons * 2) + 1];
+        }
+        this.heap[(cons * 2) + 1] = item;
+        return cons;
+    }
+
+    public int appendList(int list, int item) {
+        if (atom(list)) {
             return 0;
         }
-        a = heap[a * 2];
-        do {
-            int k = heap[a * 2];
-            if (eq(k, b)) {
-                return heap[(k * 2) + 1];
+        if (empty(list)) {
+            this.heap[list * 2] = item;
+            return item;
+        }
+        int head = this.heap[list * 2];
+        return appendCons(head, item);
+    }
+
+    // a is a list of k/v pairs
+    public int pairGet(int a, String key) {
+        if (atom(a)) {
+            return 0;
+        }
+        int head = car(a);
+        while (head > 0) {
+            int pair = car(head);
+            if (atomString(pair).equals(key)) {
+                return this.heap[(pair * 2) + 1];
             }
-            a = heap[(a * 2) + 1];
-        } while (a > 0);
+            head = this.heap[(head * 2) + 1];
+        }
         return 0;
     }
 
-    public int pairSet(int a, int b, int v) {
-        if (heap[a * 2] <= 0) {
+    public int pairSet(int a, String key, int v) {
+        if (atom(a)) {
             return 0;
         }
-        a = heap[a * 2];
-        while (a > 0) {
-            int k = heap[a * 2];
-            if (eq(k, b)) {
-                a = heap[(a * 2) + 1];
-                // deref the symbol a
-                heap[a * 2] = v;
+        int head = car(a);
+        if (head == 0) {
+            this.heap[a * 2] = list2(newSymbol(key), v);
+            return a;
+        }
+        while (this.heap[(head * 2) + 1] > 0) {
+            int pair = car(head);
+            if (atomString(pair).equals(key)) {
+                int cdr = this.heap[(pair * 2) + 1];
+                this.heap[(pair * 2) + 1] = v;
+                this.refcount[v]++;
+                if (cdr > 0) {
+                    deref(cdr);
+                }
                 return a;
             }
-            a = heap[(a * 2) + 1];
+            head = this.heap[(head * 2) + 1];
         }
-        append(a, v);
+        this.heap[(head * 2) + 1] = list2(newSymbol(key), v);
         return a;
     }
 
@@ -119,12 +151,13 @@ public class ConsHeap {
         if (atom(list)) {
             return;
         }
-        if (heap[list * 2] != 0) {
+        if (this.heap[list * 2] != 0) {
             // list is not the empty list so swap item in as the first element
-            heap[(item * 2) + 1] = heap[list * 2];
+            this.heap[(item * 2) + 1] = this.heap[list * 2];
         }
         // point the car of b to a
-        heap[list * 2] = item;
+        this.heap[list * 2] = item;
+        this.refcount[item]++;
         return;
     }
 
@@ -132,21 +165,34 @@ public class ConsHeap {
     public int pop(int i) {
         int car = car(i);
         int cdr = cdr(car);
-        heap[i * 2] = cdr;
-        heap[(car * 2) + 1] = 0;
-        // deref car
+        this.heap[i * 2] = cdr;
+        this.heap[(car * 2) + 1] = 0;
+        this.refcount[car]--;
         return car;
     }
 
     public int car(int i) {
-        if (heap[i * 2] < 0) {
-            return 0;
-        }
+//        if (heap[i * 2] < 0) {
+//            return 0;
+//        } WTF??
         return heap[i * 2];
     }
 
     public int cdr(int i) {
         return heap[(i * 2) + 1];
+    }
+
+    int setq(int i, int val) {
+        if (this.heap[i * 2] != 0) {
+            if (this.heap[i * 2] < 0) {
+                // free string
+            }
+            else {
+                deref(this.heap[i * 2]);
+            }
+        }
+        this.heap[i * 2] = car(val);
+        return val;
     }
 
     public boolean empty(int i) {
@@ -191,11 +237,6 @@ public class ConsHeap {
 
     /* Add a string to the global store of them */
     private int addString(String toAdd) {
-        for (int i = 0; i < strings.length; i++) {
-            if (strings[i].equals(toAdd)) {
-                return i;
-            }
-        }
         int at = strings.length;
         String[] newStrings = new String[at + 1];
         for (int i = 0; i < strings.length; i++) {
@@ -205,7 +246,7 @@ public class ConsHeap {
         strings = newStrings;
         return at;
     }
-    
+
     public String pairStringGet(int a, String b) {
         if (heap[a * 2] <= 0) {
             return "";
@@ -298,5 +339,28 @@ public class ConsHeap {
             }
         }
         System.out.println();
+    }
+
+    int refCount(int i) {
+        return this.refcount[i];
+    }
+
+    void deref(int i) {
+        while (i > 0) {
+            this.refcount[i]--;
+            int j = this.heap[(i * 2) + 1];
+            if (this.refcount[i] <= 1) {
+                this.refcount[i] = 0;
+                if (this.heap[i * 2] < 0) {
+                    // free string
+                }
+                if (this.heap[i * 2] > 0) {
+                    deref(this.heap[i * 2]);
+                }
+                this.heap[i * 2] = 0;
+                this.heap[(i * 2) + 1] = 0;
+            }
+            i = j;
+        }
     }
 }

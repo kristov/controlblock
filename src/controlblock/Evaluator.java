@@ -2,82 +2,106 @@ package controlblock;
 
 class Evaluator {
     private ConsHeap heap;
-    private int stack;
-    private int ENV;
-    private int values;
+    private int root;
     
     public Evaluator(ConsHeap heap) {
         this.heap = heap;
-        this.ENV = heap.buildEnv();
-        this.stack = heap.newCons(); // a stack for expressions
-        this.values = heap.newCons();
+        prepareHeap();
+    }
+
+    private void prepareHeap() {
+        this.root = this.heap.newCons();
+        int frame = this.heap.list1(this.heap.newSymbol("frame"));
+        int frames = this.heap.list2(this.heap.newSymbol("frames"), this.heap.newCons());
+        int MAIN = this.heap.buildEnv();
+        int menv = this.heap.list2(this.heap.newSymbol("MAIN"), MAIN);
+        int symbols = this.heap.list2(this.heap.newSymbol("symbols"), this.heap.list1(menv));
+        this.heap.push(this.root, symbols);
+        this.heap.push(this.root, frames);
+        this.heap.push(this.root, frame);
+    }
+
+    public int newFrame() {
+        int stack = this.heap.list2(this.heap.newSymbol("stack"), this.heap.newCons());
+        int vars = this.heap.list2(this.heap.newSymbol("variables"), this.heap.newCons());
+        int values = this.heap.list2(this.heap.newSymbol("values"), this.heap.newCons());
+        int frame = this.heap.list3(stack, vars, values);
+        int curr_frame = this.heap.pairGet(this.root, "frame");
+        if (curr_frame > 0) {
+            int frames = this.heap.pairGet(this.root, "frames");
+            this.heap.push(frames, curr_frame);
+        }
+        this.heap.pairSet(this.root, "frame", frame);
+        return frame;
     }
 
     public int result() {
+        int frames = this.heap.pairGet(this.root, "frames");
+        int frame = this.heap.pop(frames);
+        this.heap.dump(frame);
+        int values = this.heap.pairGet(frame, "values");
         return heap.pop(values);
     }
 
-    public void prepareStack(int start) {
-        int env = heap.newCons();
-        int vars = heap.newCons();
-        int frame = heap.list3(start, env, vars);
-        heap.push(stack, frame);
+    public void prepareFirstFrame(int start) {
+        int frame = newFrame();
+        int stack = this.heap.pairGet(frame, "stack");
+        this.heap.push(stack, start);
     }
 
     public void eval(int start) {
-        prepareStack(start);
+        prepareFirstFrame(start);
         evalStep();
         while (evalStep()) {}
     }
 
-    public void dumpAll() {
-        System.out.print("stack: ");
-        heap.dump(stack);
-        System.out.println();
-        System.out.print("values: ");
-        heap.dump(values);
-    }
-
-    private int resolve_env(int env, int e) {
-        int r = heap.pairGet(env, e);
-        return (r > 0) ? r : e;
+    private int resolveSymbol(int table, int symbol) {
+        if (!this.heap.atom(symbol)) {
+            return symbol;
+        }
+        int r = this.heap.pairGet(table, this.heap.atomString(symbol));
+        return (r > 0) ? r : symbol;
     }
 
     public boolean evalStep() {
-        if (heap.empty(stack)) {
+        int frame = this.heap.pairGet(this.root, "frame");
+        int stack = this.heap.pairGet(frame, "stack");
+        if (this.heap.empty(stack)) {
             return false;
         }
-        int fr = heap.pop(stack);
-        int e = heap.car(fr);
-        int env = heap.cdr(e);
-        int vals = heap.cdr(env);
+        int vars = this.heap.pairGet(frame, "variables");
+        int values = this.heap.pairGet(frame, "values");
+        int e = this.heap.pop(stack);
         if (heap.atom(e)) {
-            e = resolve_env(env, e);
-            e = resolve_env(ENV, e);
+            int symbols = this.heap.pairGet(this.root, "symbols");
+            int main = this.heap.pairGet(symbols, "MAIN");
+            e = resolveSymbol(main, e);
+            e = resolveSymbol(vars, e);
         }
         if (!heap.atom(e)) {
-            int car = heap.car(e);
-            if (heap.symbolEq(car, "lambda")) {
-                int nvals = heap.newCons();
+            int car = this.heap.car(e);
+            if (this.heap.symbolEq(car, "lambda")) {
+                frame = newFrame();
+                stack = this.heap.pairGet(frame, "stack");
+                int nvars = heap.pairGet(frame, "variables");
                 int arg = heap.car(heap.cdr(car));
-                do {
+                while (arg != 0) {
                     int val = heap.pop(values);
-                    heap.append(nvals, heap.list2(heap.copy(arg), val));
+                    heap.pairSet(nvars, heap.atomString(arg), val);
                     arg = heap.cdr(arg);
-                } while (arg != 0);
+                };
                 int body = heap.cdr(heap.cdr(car));
                 if (heap.atom(body)) {
-                    heap.push(values, heap.dispatch(body, nvals));
+                    // this only works because "values" here is from the prev
+                    // frame, not newFrame above. This should properly inject a
+                    // "return" form which should pop the last value from the
+                    // current frame, restore the last frame and push the value
+                    // there.
+                    heap.push(values, heap.dispatch(body, nvars));
                 }
                 else {
-                    heap.push(stack, heap.list3(body, env, nvals));
+                    heap.push(stack, body);
                 }
-                return true;
-            }
-            else if (heap.symbolEq(car, "bind")) {
-                int nenv = heap.cdr(car);
-                int body = heap.cdr(nenv);
-                heap.push(stack, heap.list2(body, nenv));
                 return true;
             }
             else if (heap.symbolEq(car, "quote")) {
@@ -96,38 +120,43 @@ class Evaluator {
                 }
                 int test = heap.car(first);
                 heap.push(e, cond);
-                heap.push(stack, heap.list3(e, env, vals));
-                heap.push(stack, heap.list3(heap.list2(heap.newSymbol("then"), heap.cdr(test)), env, vals));
-                heap.push(stack, heap.list3(test, env, vals));
+                heap.push(stack, e);
+                heap.push(stack, heap.list2(heap.newSymbol("then"), heap.cdr(test)));
+                heap.push(stack, test);
                 return true;
             }
             else if (heap.symbolEq(car, "while")) {
                 int test = heap.cdr(e);
                 int body = heap.cdr(test);
-                heap.push(stack, heap.list3(e, env, vals)); // push original while again
-                heap.push(stack, heap.list3(heap.list2(heap.newSymbol("then"), heap.cdr(body)), env, vals));
-                heap.push(stack, heap.list3(test, env, vals));
+                heap.push(stack, e); // push original while again
+                heap.push(stack, heap.list2(heap.newSymbol("then"), heap.cdr(body)));
+                heap.push(stack, test);
                 return true;
             }
             else if (heap.symbolEq(car, "then")) {
                 int test = heap.pop(values);
                 if (heap.isTrue(test)) {
                     heap.pop(stack); // remove cond
-                    heap.push(stack, heap.list3(heap.cdr(car), env, vals));
+                    heap.push(stack, heap.cdr(car));
                 }
                 return true;
             }
             else {
                 e = heap.car(e);
-                do {
-                    int nfr = heap.list2(heap.copy(e), env);
-                    heap.push(stack, nfr);
+                while (e != 0) {
+                    heap.push(stack, heap.copy(e));
                     e = heap.cdr(e);
-                } while (e != 0);
+                }
                 return true;
             }
         }
         heap.push(values, heap.copy(e));
         return true;
+    }
+
+    public void dumpAll() {
+        System.out.print("root: ");
+        heap.dump(this.root);
+        System.out.println();
     }
 }
