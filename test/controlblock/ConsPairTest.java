@@ -33,7 +33,7 @@ public class ConsPairTest {
         assertEquals(heap.atomString(heap.car(heap.cdr(heap.car(cons)))), "key2");
         int val3 = heap.newSymbol("VAL3");
         heap.pairSet(cons, "key1", val3);
-        assertEquals(heap.cdr(heap.car(heap.car(cons))), val3);
+        assertEquals(heap.atomString(heap.cdr(heap.car(heap.car(cons)))), heap.atomString(val3));
     }
 
     @Test

@@ -16,6 +16,6 @@ public class CoreFormsTest {
         int e = parser.parseString(heap, "+ 1 1");
         evaluator.eval(e);
         int result = evaluator.result();
-        heap.dump(result);
+        assertEquals("2.0", heap.atomString(result));
     }
 }

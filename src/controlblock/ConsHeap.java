@@ -1,5 +1,8 @@
 package controlblock;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /* The heap is an array of ints nrCons * 2 in size. A cell is identified by an
  * id int. The location of the cell in the array is id * 2. Int 1 of the cell is
  * the "car". If the car is less than 0 it's the id of a string. If it's greater
@@ -11,13 +14,15 @@ public class ConsHeap {
     private final int heap_size;
     private final int[] heap;
     private final byte[] refcount;
-    private String[] strings;
+    private Object[] objects;
 
     public ConsHeap(int nrCons) {
         heap = new int[nrCons * 2];
         refcount = new byte[nrCons];
+        refcount[0] = 99;
         heap_size = nrCons;
-        strings = new String[] {"NULL"};
+        objects = new Object[1];
+        objects[0] = "NULL";
     }
 
     /* Returns the atom (i) if an atom */
@@ -120,12 +125,11 @@ public class ConsHeap {
         while (this.heap[(head * 2) + 1] > 0) {
             int pair = car(head);
             if (atomString(pair).equals(key)) {
-                int cdr = this.heap[(pair * 2) + 1];
-                this.heap[(pair * 2) + 1] = v;
-                this.refcount[v]++;
-                if (cdr > 0) {
-                    deref(cdr);
+                if (cdr(pair) != 0) {
+                    deref(cdr(pair));
                 }
+                this.refcount[v]++;
+                this.heap[(pair * 2) + 1] = v;
                 return a;
             }
             head = this.heap[(head * 2) + 1];
@@ -146,7 +150,6 @@ public class ConsHeap {
         heap[(a * 2) + 1] = b;
     }
 
-    /* (setf place (cons item place)) */
     public void push(int list, int item) {
         if (atom(list)) {
             return;
@@ -161,7 +164,6 @@ public class ConsHeap {
         return;
     }
 
-    /* (prog1 (car place) (setf place (cdr place))) */
     public int pop(int i) {
         int car = car(i);
         int cdr = cdr(car);
@@ -183,12 +185,15 @@ public class ConsHeap {
     }
 
     int setq(int i, int val) {
+        if (i == 0) {
+            System.out.println("Setting cell ZERO to a value!");
+        }
         if (this.heap[i * 2] != 0) {
-            if (this.heap[i * 2] < 0) {
-                // free string
+            if ((this.heap[i * 2] < 0) && this.refcount[i] <= 2) {
+                objects[0 - heap[i * 2]] = null;
             }
             else {
-                deref(this.heap[i * 2]);
+                deref(i);
             }
         }
         this.heap[i * 2] = car(val);
@@ -232,35 +237,27 @@ public class ConsHeap {
     }
 
     public String atomString(int n) {
-        return strings[0 - heap[n * 2]];
+        Object thing = objects[0 - heap[n * 2]];
+        if (thing instanceof String) {
+            return (String)thing;
+        }
+        return thing.toString();
     }
 
     /* Add a string to the global store of them */
     private int addString(String toAdd) {
-        int at = strings.length;
-        String[] newStrings = new String[at + 1];
-        for (int i = 0; i < strings.length; i++) {
-            newStrings[i] = strings[i];
+        int at = objects.length;
+        Object[] newObjects = new Object[at + 1];
+        for (int i = 0; i < objects.length; i++) {
+            newObjects[i] = objects[i];
         }
-        newStrings[strings.length] = toAdd;
-        strings = newStrings;
+        newObjects[objects.length] = toAdd;
+        objects = newObjects;
         return at;
     }
 
     public String pairStringGet(int a, String b) {
-        if (heap[a * 2] <= 0) {
-            return "";
-        }
-        a = heap[a * 2];
-        do {
-            int k = heap[a * 2];
-            String key = atomString(k);
-            if (key.equals(b)) {
-                return atomString(cdr(k));
-            }
-            a = heap[(a * 2) + 1];
-        } while (a > 0);
-        return "";
+        return atomString(pairGet(a, b));
     }
 
     private int plus_e(int env) {
@@ -292,7 +289,7 @@ public class ConsHeap {
         int n = i;
         while (n > 0) {
             if (atom(n)) {
-                System.out.print(strings[0 - heap[n * 2]]);
+                System.out.print(atomString(n));
                 if (heap[(n * 2) + 1] > 0) {
                     System.out.print(" ");
                 }
@@ -312,9 +309,51 @@ public class ConsHeap {
         }
     }
 
-    /* recursively dumps something */
+    public void dumpConsSys(int indent, int i) {
+        int n = i;
+        while (n > 0) {
+            if (atom(n)) {
+                System.out.print(n + "[\"" + atomString(n) + "\":" + heap[(n * 2) + 1] + ":" + refcount[n] + "]");
+                if (heap[(n * 2) + 1] > 0) {
+                    System.out.print(" ");
+                }
+            }
+            else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
+                System.out.print(n + ":" + refcount[n] + "()");
+            }
+            else {
+                System.out.print(n + ":" + refcount[n] + "(");
+                dumpConsSys(indent + 2, heap[n * 2]);
+                System.out.print(")");
+                if (heap[(n * 2) + 1] > 0) {
+                    System.out.print(" ");
+                }
+            }
+            n = heap[(n * 2) + 1];
+        }
+    }
+
     public void dump(int i) {
-        dumpCons(0, i);
+        dumpConsSys(0, i);
+        System.out.println();
+    }
+
+    public void info(int i) {
+        System.out.println("Id: " + i);
+        if (heap[i * 2] == 0) {
+            System.out.println("TYPE: Empty list");
+            System.out.println("REFCOUNT: " + refcount[i]);
+        }
+        else if (heap[i * 2] < 0) {
+            System.out.println("TYPE: String");
+            System.out.println("REFCOUNT: " + refcount[i]);
+        }
+        else {
+            System.out.println("TYPE: List");
+            System.out.println("REFCOUNT: " + refcount[i]);            
+        }
+        System.out.print("DUMP: ");
+        dump(i);
         System.out.println();
     }
 
@@ -331,10 +370,10 @@ public class ConsHeap {
         for (int z = 0; z < heap_size; z++) {
             if (refcount[z] > 0) {
                 if (heap[z * 2] < 0) {
-                    System.out.print(z + "[" + strings[0 - (heap[z * 2])] + ":" + heap[(z * 2) + 1] + "] ");
+                    System.out.print(z + "[" + atomString(z) + ":" + heap[(z * 2) + 1] + ":" + refcount[z] + "] ");
                 }
                 else {
-                    System.out.print(z + "[" + heap[z * 2] + ":" + heap[(z * 2) + 1] + "] ");
+                    System.out.print(z + "[" + heap[z * 2] + ":" + heap[(z * 2) + 1] + ":" + refcount[z] + "] ");
                 }
             }
         }
@@ -348,18 +387,19 @@ public class ConsHeap {
     void deref(int i) {
         while (i > 0) {
             this.refcount[i]--;
-            int j = this.heap[(i * 2) + 1];
-            if (this.refcount[i] <= 1) {
-                this.refcount[i] = 0;
-                if (this.heap[i * 2] < 0) {
-                    // free string
-                }
-                if (this.heap[i * 2] > 0) {
-                    deref(this.heap[i * 2]);
-                }
-                this.heap[i * 2] = 0;
-                this.heap[(i * 2) + 1] = 0;
+            if (this.refcount[i] > 1) {
+                return;
             }
+            int j = this.heap[(i * 2) + 1];
+            this.refcount[i] = 0;
+            if (this.heap[i * 2] < 0) {
+                objects[0 - heap[i * 2]] = null;
+            }
+            if (this.heap[i * 2] > 0) {
+                deref(this.heap[i * 2]);
+            }
+            this.heap[i * 2] = 0;
+            this.heap[(i * 2) + 1] = 0;
             i = j;
         }
     }

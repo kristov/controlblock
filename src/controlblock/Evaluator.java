@@ -38,7 +38,6 @@ class Evaluator {
     public int result() {
         int frames = this.heap.pairGet(this.root, "frames");
         int frame = this.heap.pop(frames);
-        this.heap.dump(frame);
         int values = this.heap.pairGet(frame, "values");
         return heap.pop(values);
     }
