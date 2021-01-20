@@ -36,8 +36,7 @@ class Evaluator {
     }
 
     public int result() {
-        int frames = this.heap.pairGet(this.root, "frames");
-        int frame = this.heap.pop(frames);
+        int frame = this.heap.pairGet(this.root, "frame");
         int values = this.heap.pairGet(frame, "values");
         return heap.pop(values);
     }
@@ -82,25 +81,31 @@ class Evaluator {
             if (this.heap.symbolEq(car, "lambda")) {
                 frame = newFrame();
                 stack = this.heap.pairGet(frame, "stack");
-                int nvars = heap.pairGet(frame, "variables");
+                vars = heap.pairGet(frame, "variables");
                 int arg = heap.car(heap.cdr(car));
                 while (arg != 0) {
                     int val = heap.pop(values);
-                    heap.pairSet(nvars, heap.atomString(arg), val);
+                    heap.pairSet(vars, heap.atomString(arg), val);
                     arg = heap.cdr(arg);
                 };
                 int body = heap.cdr(heap.cdr(car));
                 if (heap.atom(body)) {
-                    // this only works because "values" here is from the prev
-                    // frame, not newFrame above. This should properly inject a
-                    // "return" form which should pop the last value from the
-                    // current frame, restore the last frame and push the value
-                    // there.
-                    heap.push(values, heap.dispatch(body, nvars));
+                    heap.push(stack, heap.list1(heap.newSymbol("pop-frame")));
+                    values = this.heap.pairGet(frame, "values");
+                    heap.push(values, heap.dispatch(body, vars));
                 }
                 else {
+                    heap.push(stack, heap.list1(heap.newSymbol("pop-frame")));
                     heap.push(stack, body);
                 }
+                return true;
+            }
+            else if (heap.symbolEq(car, "pop-frame")) {
+                int last_val = this.heap.pop(values);
+                int last_frame = this.heap.pop(this.heap.pairGet(this.root, "frames"));
+                int last_values = this.heap.pairGet(last_frame, "values");
+                this.heap.push(last_values, last_val);
+                this.heap.pairSet(this.root, "frame", last_frame);
                 return true;
             }
             else if (heap.symbolEq(car, "quote")) {
@@ -108,8 +113,10 @@ class Evaluator {
                 heap.push(values, e);
                 return true;
             }
-            else if (heap.symbolEq(car, "setq")) {
-                // (set (quote *foo*) 42)
+            else if (heap.symbolEq(car, "assignq")) {
+                this.heap.pairSet(vars, heap.atomString(heap.cdr(car)), heap.cdr(heap.cdr(car)));
+                this.heap.push(values, heap.cdr(heap.cdr(car)));
+                return true;
             }
             else if (heap.symbolEq(car, "cond")) {
                 int cond = heap.pop(e);
@@ -154,8 +161,11 @@ class Evaluator {
     }
 
     public void dumpAll() {
-        System.out.print("root: ");
-        heap.dump(this.root);
-        System.out.println();
+        int frame = this.heap.pairGet(this.root, "frame");
+        heap.dump("frame", frame);
+        int stack = this.heap.pairGet(frame, "stack");
+        heap.dump("stack", stack);
+        int values = this.heap.pairGet(frame, "values");
+        heap.dump("values", values);
     }
 }

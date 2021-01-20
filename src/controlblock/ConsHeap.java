@@ -285,30 +285,6 @@ public class ConsHeap {
         return env;
     }
 
-    public void dumpCons(int indent, int i) {
-        int n = i;
-        while (n > 0) {
-            if (atom(n)) {
-                System.out.print(atomString(n));
-                if (heap[(n * 2) + 1] > 0) {
-                    System.out.print(" ");
-                }
-            }
-            else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
-                System.out.print("()");
-            }
-            else {
-                System.out.print("(");
-                dumpCons(indent + 2, heap[n * 2]);
-                System.out.print(")");
-                if (heap[(n * 2) + 1] > 0) {
-                    System.out.print(" ");
-                }
-            }
-            n = heap[(n * 2) + 1];
-        }
-    }
-
     public void dumpConsSys(int indent, int i) {
         int n = i;
         while (n > 0) {
@@ -333,12 +309,42 @@ public class ConsHeap {
         }
     }
 
-    public void dump(int i) {
+    public void dumpSys(int i) {
         dumpConsSys(0, i);
         System.out.println();
     }
 
-    public void info(int i) {
+    public void dumpCons(int indent, int i) {
+        int n = i;
+        while (n > 0) {
+            if (atom(n)) {
+                System.out.print(atomString(n));
+                if (heap[(n * 2) + 1] > 0) {
+                    System.out.print(" ");
+                }
+            }
+            else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
+                System.out.print("()");
+            }
+            else {
+                System.out.print("(");
+                dumpCons(indent + 2, heap[n * 2]);
+                System.out.print(")");
+                if (heap[(n * 2) + 1] > 0) {
+                    System.out.print(" ");
+                }
+            }
+            n = heap[(n * 2) + 1];
+        }
+    }
+
+    public void dump(String name, int i) {
+        System.out.print(name + ": ");
+        dumpCons(0, i);
+        System.out.println();
+    }
+
+    public void info(String name, int i) {
         System.out.println("Id: " + i);
         if (heap[i * 2] == 0) {
             System.out.println("TYPE: Empty list");
@@ -353,7 +359,7 @@ public class ConsHeap {
             System.out.println("REFCOUNT: " + refcount[i]);            
         }
         System.out.print("DUMP: ");
-        dump(i);
+        dump(name, i);
         System.out.println();
     }
 

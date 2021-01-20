@@ -22,9 +22,8 @@ public class ControlBlock {
                     evaluator.dumpAll();
                     console.readLine();
                 }
-                System.out.print("<< ");
                 int result = evaluator.result();
-                heap.dump(result);
+                heap.dump("<< ", result);
                 System.out.print(">> ");
                 chunk = console.readLine();
             }
