@@ -60,6 +60,19 @@ public class ConsHeap {
         return p;
     }
 
+    public int list4(int a, int b, int c, int d) {
+        int p = newCons();
+        heap[p * 2] = a;
+        heap[(a * 2) + 1] = b;
+        heap[(b * 2) + 1] = c;
+        heap[(c * 2) + 1] = d;
+        refcount[a]++;
+        refcount[b]++;
+        refcount[c]++;
+        refcount[d]++;
+        return p;
+    }
+
     public boolean eq(int a, int b) {
         if (atom(a) && atom(b)) {
             if (atomString(a).equals(atomString(b))) {
@@ -125,11 +138,12 @@ public class ConsHeap {
         while (this.heap[(head * 2) + 1] > 0) {
             int pair = car(head);
             if (atomString(pair).equals(key)) {
-                if (cdr(pair) != 0) {
-                    deref(cdr(pair));
-                }
+                int cdr_pair = cdr(pair);
                 this.refcount[v]++;
                 this.heap[(pair * 2) + 1] = v;
+                if (cdr_pair != 0) {
+                    deref(cdr_pair);
+                }
                 return a;
             }
             head = this.heap[(head * 2) + 1];

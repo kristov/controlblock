@@ -13,24 +13,20 @@ class Evaluator {
         this.root = this.heap.newCons();
         int frame = this.heap.list1(this.heap.newSymbol("frame"));
         int frames = this.heap.list2(this.heap.newSymbol("frames"), this.heap.newCons());
-        int MAIN = this.heap.buildEnv();
-        int menv = this.heap.list2(this.heap.newSymbol("MAIN"), MAIN);
+        int main = this.heap.buildEnv();
+        int menv = this.heap.list2(this.heap.newSymbol("main"), main);
         int symbols = this.heap.list2(this.heap.newSymbol("symbols"), this.heap.list1(menv));
         this.heap.push(this.root, symbols);
         this.heap.push(this.root, frames);
         this.heap.push(this.root, frame);
     }
 
-    public int newFrame() {
+    public int newFrame(int parent) {
+        int parentfr = this.heap.list2(this.heap.newSymbol("parentfr"), parent);
         int stack = this.heap.list2(this.heap.newSymbol("stack"), this.heap.newCons());
         int vars = this.heap.list2(this.heap.newSymbol("variables"), this.heap.newCons());
         int values = this.heap.list2(this.heap.newSymbol("values"), this.heap.newCons());
-        int frame = this.heap.list3(stack, vars, values);
-        int curr_frame = this.heap.pairGet(this.root, "frame");
-        if (curr_frame > 0) {
-            int frames = this.heap.pairGet(this.root, "frames");
-            this.heap.push(frames, curr_frame);
-        }
+        int frame = this.heap.list4(parentfr, stack, vars, values);
         this.heap.pairSet(this.root, "frame", frame);
         return frame;
     }
@@ -42,7 +38,7 @@ class Evaluator {
     }
 
     public void prepareFirstFrame(int start) {
-        int frame = newFrame();
+        int frame = newFrame(0);
         int stack = this.heap.pairGet(frame, "stack");
         this.heap.push(stack, start);
     }
@@ -72,14 +68,14 @@ class Evaluator {
         int e = this.heap.pop(stack);
         if (heap.atom(e)) {
             int symbols = this.heap.pairGet(this.root, "symbols");
-            int main = this.heap.pairGet(symbols, "MAIN");
+            int main = this.heap.pairGet(symbols, "main");
             e = resolveSymbol(main, e);
             e = resolveSymbol(vars, e);
         }
         if (!heap.atom(e)) {
             int car = this.heap.car(e);
             if (this.heap.symbolEq(car, "lambda")) {
-                frame = newFrame();
+                frame = newFrame(frame);
                 stack = this.heap.pairGet(frame, "stack");
                 vars = heap.pairGet(frame, "variables");
                 int arg = heap.car(heap.cdr(car));
@@ -102,7 +98,11 @@ class Evaluator {
             }
             else if (heap.symbolEq(car, "pop-frame")) {
                 int last_val = this.heap.pop(values);
-                int last_frame = this.heap.pop(this.heap.pairGet(this.root, "frames"));
+                int last_frame = this.heap.pairGet(frame, "parentfr");
+                if (last_frame == 0) {
+                    System.out.println("last_frame was zero");
+                    return true;
+                }
                 int last_values = this.heap.pairGet(last_frame, "values");
                 this.heap.push(last_values, last_val);
                 this.heap.pairSet(this.root, "frame", last_frame);

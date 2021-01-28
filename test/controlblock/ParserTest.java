@@ -11,7 +11,7 @@ public class ParserTest {
         Parser instance = new Parser();
         int expResult = 0;
         int result = instance.parseString(heap, chunk);
-        heap.dump(result);
+        heap.dump("result", result);
     }
 
     @Test
@@ -21,6 +21,6 @@ public class ParserTest {
         Parser instance = new Parser();
         int expResult = 0;
         int result = instance.parseString(heap, chunk);
-        heap.dump(result);
+        heap.dump("result", result);
     }
 }
