@@ -100,7 +100,6 @@ class Evaluator {
                 return true;
             }
             if (this.heap.symbolEq(car, "progn")) {
-                this.heap.push(stack, this.heap.list1(this.heap.newSymbol("pop-frame")));
                 int exp = this.heap.car(this.heap.reverse(this.heap.cdr(car)));
                 while (exp != 0) {
                     int nxt = this.heap.cdr(exp);
