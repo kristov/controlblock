@@ -64,4 +64,15 @@ public class CoreFormsTest {
         int result = evaluator.result();
         assertEquals("5.0", heap.atomString(result));
     }
+
+    @Test
+    public void testCond() {
+        ConsHeap heap = new ConsHeap(255);
+        Evaluator evaluator = new Evaluator(heap);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "cond (0 1) (0 2) (1 3)");
+        evaluator.eval(e);
+        int result = evaluator.result();
+        assertEquals("3", heap.atomString(result));
+    }
 }
