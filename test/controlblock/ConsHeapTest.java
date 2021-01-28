@@ -72,8 +72,21 @@ public class ConsHeapTest {
     }
     
     @Test
-    public void testBuildEnv() {
+    public void testReverse() {
         ConsHeap heap = new ConsHeap(255);
-        int env = heap.buildEnv();
+        int l1 = heap.list5(
+            heap.newSymbol("1"),
+            heap.newSymbol("2"),
+            heap.newSymbol("3"),
+            heap.newSymbol("4"),
+            heap.newSymbol("5")
+        );
+        int l2 = heap.reverse(l1);
+        l2 = heap.car(l2);
+        assertEquals("5", heap.atomString(l2)); l2 = heap.cdr(l2);
+        assertEquals("4", heap.atomString(l2)); l2 = heap.cdr(l2);
+        assertEquals("3", heap.atomString(l2)); l2 = heap.cdr(l2);
+        assertEquals("2", heap.atomString(l2)); l2 = heap.cdr(l2);
+        assertEquals("1", heap.atomString(l2));
     }
 }

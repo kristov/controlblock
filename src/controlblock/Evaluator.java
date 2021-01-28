@@ -25,8 +25,9 @@ class Evaluator {
         int parentfr = this.heap.list2(this.heap.newSymbol("parentfr"), parent);
         int stack = this.heap.list2(this.heap.newSymbol("stack"), this.heap.newCons());
         int vars = this.heap.list2(this.heap.newSymbol("variables"), this.heap.newCons());
+        int syms = this.heap.list2(this.heap.newSymbol("symbols"), this.heap.newCons());
         int values = this.heap.list2(this.heap.newSymbol("values"), this.heap.newCons());
-        int frame = this.heap.list4(parentfr, stack, vars, values);
+        int frame = this.heap.list5(parentfr, stack, vars, syms, values);
         this.heap.pairSet(this.root, "frame", frame);
         return frame;
     }
@@ -64,12 +65,14 @@ class Evaluator {
             return false;
         }
         int vars = this.heap.pairGet(frame, "variables");
+        int syms = this.heap.pairGet(frame, "symbols");
         int values = this.heap.pairGet(frame, "values");
         int e = this.heap.pop(stack);
         if (heap.atom(e)) {
             int symbols = this.heap.pairGet(this.root, "symbols");
             int main = this.heap.pairGet(symbols, "main");
             e = resolveSymbol(main, e);
+            e = resolveSymbol(syms, e);
             e = resolveSymbol(vars, e);
         }
         if (!heap.atom(e)) {
@@ -96,6 +99,16 @@ class Evaluator {
                 }
                 return true;
             }
+            if (this.heap.symbolEq(car, "progn")) {
+                this.heap.push(stack, this.heap.list1(this.heap.newSymbol("pop-frame")));
+                int exp = this.heap.car(this.heap.reverse(this.heap.cdr(car)));
+                while (exp != 0) {
+                    int nxt = this.heap.cdr(exp);
+                    this.heap.push(stack, exp);
+                    exp = nxt;
+                }
+                return true;
+            }
             else if (heap.symbolEq(car, "pop-frame")) {
                 int last_val = this.heap.pop(values);
                 int last_frame = this.heap.pairGet(frame, "parentfr");
@@ -113,8 +126,13 @@ class Evaluator {
                 heap.push(values, e);
                 return true;
             }
-            else if (heap.symbolEq(car, "assignq")) {
+            else if (heap.symbolEq(car, "vassign")) {
                 this.heap.pairSet(vars, heap.atomString(heap.cdr(car)), heap.cdr(heap.cdr(car)));
+                this.heap.push(values, heap.cdr(heap.cdr(car)));
+                return true;
+            }
+            else if (heap.symbolEq(car, "sassign")) {
+                this.heap.pairSet(syms, heap.atomString(heap.cdr(car)), heap.cdr(heap.cdr(car)));
                 this.heap.push(values, heap.cdr(heap.cdr(car)));
                 return true;
             }

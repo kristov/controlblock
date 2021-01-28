@@ -73,6 +73,21 @@ public class ConsHeap {
         return p;
     }
 
+    public int list5(int a, int b, int c, int d, int e) {
+        int p = newCons();
+        heap[p * 2] = a;
+        heap[(a * 2) + 1] = b;
+        heap[(b * 2) + 1] = c;
+        heap[(c * 2) + 1] = d;
+        heap[(d * 2) + 1] = e;
+        refcount[a]++;
+        refcount[b]++;
+        refcount[c]++;
+        refcount[d]++;
+        refcount[e]++;
+        return p;
+    }
+
     public boolean eq(int a, int b) {
         if (atom(a) && atom(b)) {
             if (atomString(a).equals(atomString(b))) {
@@ -187,6 +202,20 @@ public class ConsHeap {
         this.heap[(car * 2) + 1] = 0;
         this.refcount[car]--;
         return car;
+    }
+
+    public int reverse(int i) {
+        int rev = newCons();
+        i = car(i);
+        int prev = 0;
+        while (i > 0) {
+            int n = copy(i);
+            heap[(n * 2) + 1] = prev;
+            prev = n;
+            i = heap[(i * 2) + 1];
+        }
+        heap[rev * 2] = prev;
+        return rev;
     }
 
     public int car(int i) {

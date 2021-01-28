@@ -31,22 +31,22 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testAssignq() {
+    public void testVassign() {
         ConsHeap heap = new ConsHeap(255);
         Evaluator evaluator = new Evaluator(heap);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "assignq bob geldof");
+        int e = parser.parseString(heap, "vassign bob geldof");
         evaluator.eval(e);
         int result = evaluator.result();
         assertEquals("geldof", heap.atomString(result));
     }
 
     @Test
-    public void testAssignqStructure() {
+    public void testVassignStructure() {
         ConsHeap heap = new ConsHeap(255);
         Evaluator evaluator = new Evaluator(heap);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "assignq mylist (1 2 3)");
+        int e = parser.parseString(heap, "vassign mylist (1 2 3)");
         evaluator.eval(e);
         int result = evaluator.result();
         assertEquals("1", heap.atomString(heap.car(result)));
@@ -74,5 +74,15 @@ public class CoreFormsTest {
         evaluator.eval(e);
         int result = evaluator.result();
         assertEquals("3", heap.atomString(result));
+    }
+
+    @Test
+    public void testProgn() {
+        ConsHeap heap = new ConsHeap(255);
+        Evaluator evaluator = new Evaluator(heap);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn ((1) (2) (3) (4))");
+        evaluator.eval(e);
+        int result = evaluator.result();
     }
 }
