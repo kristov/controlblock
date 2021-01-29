@@ -15,8 +15,10 @@ public class ControlBlock {
             while (chunk != null) {
                 int e = parser.parseString(heap, chunk);
                 heap.prepareFirstFrame(e);
+                heap.dumpFrame();
                 console.readLine();
                 while (heap.eval()) {
+                    heap.dumpFrame();
                     console.readLine();
                 }
                 int result = heap.result();

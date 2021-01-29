@@ -554,6 +554,15 @@ public class ConsHeap {
         System.out.println();
     }
 
+    public void dumpFrame() {
+        int frame = pairGet(this.root, "frame");
+        int stack = pairGet(frame, "stack");
+        int values = pairGet(frame, "values");
+        System.out.println("> FRAME: " + frame);
+        dump(">  stack", stack);
+        dump("> values", values);
+    }
+
     public void info(String name, int i) {
         System.out.println("Id: " + i);
         if (heap[i * 2] == 0) {
