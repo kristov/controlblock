@@ -11,6 +11,7 @@ import java.util.List;
  * cons list.
  */
 public class ConsHeap {
+    private int root;
     private final int heap_size;
     private final int[] heap;
     private final byte[] refcount;
@@ -23,6 +24,7 @@ public class ConsHeap {
         heap_size = nrCons;
         objects = new Object[1];
         objects[0] = "NULL";
+        prepareHeap();
     }
 
     /* Returns the atom (i) if an atom */
@@ -328,6 +330,171 @@ public class ConsHeap {
         append(env, list2(newSymbol("+"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("plus_e"))));
         append(env, list2(newSymbol("eq"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("eq_e"))));
         return env;
+    }
+
+    private void prepareHeap() {
+        this.root = newCons();
+        int frame = list1(newSymbol("frame"));
+        int frames = list2(newSymbol("frames"), newCons());
+        int main = buildEnv();
+        int menv = list2(newSymbol("main"), main);
+        int symbols = list2(newSymbol("symbols"), list1(menv));
+        push(this.root, symbols);
+        push(this.root, frames);
+        push(this.root, frame);
+    }
+
+    public void prepareFirstFrame(int start) {
+        int frame = newFrame(0);
+        int stack = pairGet(frame, "stack");
+        push(stack, start);
+    }
+
+    public void evalExpression(int start) {
+        prepareFirstFrame(start);
+        eval();
+        while (eval()) {}
+    }
+
+    public int result() {
+        int frame = pairGet(this.root, "frame");
+        int values = pairGet(frame, "values");
+        return pop(values);
+    }
+
+    public int newFrame(int parent) {
+        int parentfr = list2(newSymbol("parentfr"), parent);
+        int stack = list2(newSymbol("stack"), newCons());
+        int vars = list2(newSymbol("variables"), newCons());
+        int syms = list2(newSymbol("symbols"), newCons());
+        int values = list2(newSymbol("values"), newCons());
+        int frame = list5(parentfr, stack, vars, syms, values);
+        pairSet(this.root, "frame", frame);
+        return frame;
+    }
+
+    private int resolveSymbol(int table, int symbol) {
+        if (!atom(symbol)) {
+            return symbol;
+        }
+        int r = pairGet(table, atomString(symbol));
+        return (r > 0) ? r : symbol;
+    }
+
+    public boolean eval() {
+        int frame = pairGet(this.root, "frame");
+        int stack = pairGet(frame, "stack");
+        if (empty(stack)) {
+            return false;
+        }
+        int vars = pairGet(frame, "variables");
+        int syms = pairGet(frame, "symbols");
+        int values = pairGet(frame, "values");
+        int e = pop(stack);
+        if (atom(e)) {
+            int symbols = pairGet(this.root, "symbols");
+            int main = pairGet(symbols, "main");
+            e = resolveSymbol(main, e);
+            e = resolveSymbol(syms, e);
+            e = resolveSymbol(vars, e);
+        }
+        if (atom(e)) {
+            push(values, copy(e));
+            return true;
+        }
+        int car = car(e);
+        if (symbolEq(car, "lambda")) {
+            frame = newFrame(frame);
+            stack = pairGet(frame, "stack");
+            vars = pairGet(frame, "variables");
+            int arg = car(cdr(car));
+            while (arg != 0) {
+                int val = pop(values);
+                pairSet(vars, atomString(arg), val);
+                arg = cdr(arg);
+            };
+            int body = cdr(cdr(car));
+            if (atom(body)) {
+                push(stack, list1(newSymbol("pop-frame")));
+                values = pairGet(frame, "values");
+                push(values, dispatch(body, vars));
+            }
+            else {
+                push(stack, list1(newSymbol("pop-frame")));
+                push(stack, body);
+            }
+            return true;
+        }
+        if (symbolEq(car, "progn")) {
+            int exp = car(reverse(cdr(car)));
+            while (exp != 0) {
+                push(stack, copy(exp));
+                exp = cdr(exp);
+            }
+            return true;
+        }
+        else if (symbolEq(car, "pop-frame")) {
+            int last_val = pop(values);
+            int last_frame = pairGet(frame, "parentfr");
+            if (last_frame == 0) {
+                System.out.println("last_frame was zero");
+                return true;
+            }
+            int last_values = pairGet(last_frame, "values");
+            push(last_values, last_val);
+            pairSet(this.root, "frame", last_frame);
+            return true;
+        }
+        else if (symbolEq(car, "quote")) {
+            e = cdr(e);
+            push(values, e);
+            return true;
+        }
+        else if (symbolEq(car, "vassign")) {
+            pairSet(vars, atomString(cdr(car)), cdr(cdr(car)));
+            push(values, cdr(cdr(car)));
+            return true;
+        }
+        else if (symbolEq(car, "sassign")) {
+            pairSet(syms, atomString(cdr(car)), cdr(cdr(car)));
+            push(values, cdr(cdr(car)));
+            return true;
+        }
+        else if (symbolEq(car, "cond")) {
+            int cond = pop(e);
+            int first = pop(e);
+            if (first == 0) {
+                return true;
+            }
+            int test = car(first);
+            push(e, cond);
+            push(stack, e);
+            push(stack, list2(newSymbol("then"), cdr(test)));
+            push(stack, test);
+            return true;
+        }
+        else if (symbolEq(car, "while")) {
+            int test = cdr(e);
+            int body = cdr(test);
+            push(stack, e); // push original while again
+            push(stack, list2(newSymbol("then"), cdr(body)));
+            push(stack, test);
+            return true;
+        }
+        else if (symbolEq(car, "then")) {
+            int test = pop(values);
+            if (isTrue(test)) {
+                pop(stack); // remove cond
+                push(stack, cdr(car));
+            }
+            return true;
+        }
+        e = car(e);
+        while (e != 0) {
+            push(stack, copy(e)); // possibly needs to be a deep copy
+            e = cdr(e);
+        }
+        return true;
     }
 
     public void dumpConsSys(int indent, int i) {

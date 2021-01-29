@@ -9,21 +9,6 @@ import static org.junit.Assert.*;
 
 public class ConsHeapTest {
     @Test
-    public void testNewCons() {
-        ConsHeap heap = new ConsHeap(255);
-        int cons = heap.newCons();
-        assertEquals(1, cons);
-    }
-
-    @Test
-    public void testNewSymbol() {
-        ConsHeap heap = new ConsHeap(255);
-        int expResult = 0;
-        int cons = heap.newSymbol("Hello");
-        assertEquals(1, cons);
-    }
-
-    @Test
     public void testAtom() {
         ConsHeap heap = new ConsHeap(255);
         int cons = heap.newSymbol("Hello");
@@ -41,17 +26,6 @@ public class ConsHeapTest {
         assertEquals(true, result);
         result = heap.eq(b, c);
         assertEquals(false, result);
-    }
-
-    @Test
-    public void testAppend() {
-        ConsHeap heap = new ConsHeap(255);
-        int list = heap.newCons();
-        int item = heap.newSymbol("something");
-        heap.append(list, item);
-        assertEquals(1, list);
-        assertEquals(2, item);
-        assertEquals(item, heap.car(list));
     }
 
     @Test

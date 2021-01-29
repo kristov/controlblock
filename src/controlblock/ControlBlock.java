@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 public class ControlBlock {
     public static void main(String[] args) {
         ConsHeap heap = new ConsHeap(1024);
-        Evaluator evaluator = new Evaluator(heap);
         Parser parser = new Parser();
         Console console = System.console();
         try {
@@ -15,14 +14,12 @@ public class ControlBlock {
             String chunk = console.readLine();
             while (chunk != null) {
                 int e = parser.parseString(heap, chunk);
-                evaluator.prepareFirstFrame(e);
-                evaluator.dumpAll();
+                heap.prepareFirstFrame(e);
                 console.readLine();
-                while (evaluator.evalStep()) {
-                    evaluator.dumpAll();
+                while (heap.eval()) {
                     console.readLine();
                 }
-                int result = evaluator.result();
+                int result = heap.result();
                 heap.dump("<< ", result);
                 System.out.print(">> ");
                 chunk = console.readLine();

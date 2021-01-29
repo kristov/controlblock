@@ -22,8 +22,8 @@ public class GarbageCollectionTest {
         assertEquals(0, heap.refCount(list1));
         assertEquals(0, heap.refCount(cons1));
         assertEquals(0, heap.refCount(cons2));
-        cons1 = heap.newCons();
-        assertEquals(1, cons1);
+        int cons1fr = heap.newCons();
+        assertEquals(cons1, cons1fr);
     }
     
     @Test
