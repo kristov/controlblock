@@ -54,7 +54,7 @@ public class CoreFormsTest {
     public void testInlineLambda() {
         ConsHeap heap = new ConsHeap(255);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "(lambda (d e) (+ d e)) 2 3");
+        int e = parser.parseString(heap, "(lambda (d e) ((+ d e))) 2 3");
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("5.0", heap.atomString(result));
