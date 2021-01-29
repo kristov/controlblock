@@ -68,111 +68,109 @@ class Evaluator {
         int syms = this.heap.pairGet(frame, "symbols");
         int values = this.heap.pairGet(frame, "values");
         int e = this.heap.pop(stack);
-        if (heap.atom(e)) {
+        if (this.heap.atom(e)) {
             int symbols = this.heap.pairGet(this.root, "symbols");
             int main = this.heap.pairGet(symbols, "main");
             e = resolveSymbol(main, e);
             e = resolveSymbol(syms, e);
             e = resolveSymbol(vars, e);
         }
-        if (!heap.atom(e)) {
-            int car = this.heap.car(e);
-            if (this.heap.symbolEq(car, "lambda")) {
-                frame = newFrame(frame);
-                stack = this.heap.pairGet(frame, "stack");
-                vars = heap.pairGet(frame, "variables");
-                int arg = heap.car(heap.cdr(car));
-                while (arg != 0) {
-                    int val = heap.pop(values);
-                    heap.pairSet(vars, heap.atomString(arg), val);
-                    arg = heap.cdr(arg);
-                };
-                int body = heap.cdr(heap.cdr(car));
-                if (heap.atom(body)) {
-                    heap.push(stack, heap.list1(heap.newSymbol("pop-frame")));
-                    values = this.heap.pairGet(frame, "values");
-                    heap.push(values, heap.dispatch(body, vars));
-                }
-                else {
-                    heap.push(stack, heap.list1(heap.newSymbol("pop-frame")));
-                    heap.push(stack, body);
-                }
-                return true;
-            }
-            if (this.heap.symbolEq(car, "progn")) {
-                int exp = this.heap.car(this.heap.reverse(this.heap.cdr(car)));
-                while (exp != 0) {
-                    this.heap.push(stack, this.heap.copy(exp));
-                    exp = this.heap.cdr(exp);
-                }
-                return true;
-            }
-            else if (heap.symbolEq(car, "pop-frame")) {
-                int last_val = this.heap.pop(values);
-                int last_frame = this.heap.pairGet(frame, "parentfr");
-                if (last_frame == 0) {
-                    System.out.println("last_frame was zero");
-                    return true;
-                }
-                int last_values = this.heap.pairGet(last_frame, "values");
-                this.heap.push(last_values, last_val);
-                this.heap.pairSet(this.root, "frame", last_frame);
-                return true;
-            }
-            else if (heap.symbolEq(car, "quote")) {
-                e = heap.cdr(e);
-                heap.push(values, e);
-                return true;
-            }
-            else if (heap.symbolEq(car, "vassign")) {
-                this.heap.pairSet(vars, heap.atomString(heap.cdr(car)), heap.cdr(heap.cdr(car)));
-                this.heap.push(values, heap.cdr(heap.cdr(car)));
-                return true;
-            }
-            else if (heap.symbolEq(car, "sassign")) {
-                this.heap.pairSet(syms, heap.atomString(heap.cdr(car)), heap.cdr(heap.cdr(car)));
-                this.heap.push(values, heap.cdr(heap.cdr(car)));
-                return true;
-            }
-            else if (heap.symbolEq(car, "cond")) {
-                int cond = heap.pop(e);
-                int first = heap.pop(e);
-                if (first == 0) {
-                    return true;
-                }
-                int test = heap.car(first);
-                heap.push(e, cond);
-                heap.push(stack, e);
-                heap.push(stack, heap.list2(heap.newSymbol("then"), heap.cdr(test)));
-                heap.push(stack, test);
-                return true;
-            }
-            else if (heap.symbolEq(car, "while")) {
-                int test = heap.cdr(e);
-                int body = heap.cdr(test);
-                heap.push(stack, e); // push original while again
-                heap.push(stack, heap.list2(heap.newSymbol("then"), heap.cdr(body)));
-                heap.push(stack, test);
-                return true;
-            }
-            else if (heap.symbolEq(car, "then")) {
-                int test = heap.pop(values);
-                if (heap.isTrue(test)) {
-                    heap.pop(stack); // remove cond
-                    heap.push(stack, heap.cdr(car));
-                }
-                return true;
+        if (this.heap.atom(e)) {
+            this.heap.push(values, this.heap.copy(e));
+            return true;
+        }
+        int car = this.heap.car(e);
+        if (this.heap.symbolEq(car, "lambda")) {
+            frame = newFrame(frame);
+            stack = this.heap.pairGet(frame, "stack");
+            vars = this.heap.pairGet(frame, "variables");
+            int arg = this.heap.car(this.heap.cdr(car));
+            while (arg != 0) {
+                int val = this.heap.pop(values);
+                this.heap.pairSet(vars, this.heap.atomString(arg), val);
+                arg = this.heap.cdr(arg);
+            };
+            int body = this.heap.cdr(this.heap.cdr(car));
+            if (this.heap.atom(body)) {
+                this.heap.push(stack, this.heap.list1(this.heap.newSymbol("pop-frame")));
+                values = this.heap.pairGet(frame, "values");
+                this.heap.push(values, this.heap.dispatch(body, vars));
             }
             else {
-                e = heap.car(e);
-                while (e != 0) {
-                    heap.push(stack, heap.copy(e));
-                    e = heap.cdr(e);
-                }
+                this.heap.push(stack, this.heap.list1(this.heap.newSymbol("pop-frame")));
+                this.heap.push(stack, body);
+            }
+            return true;
+        }
+        if (this.heap.symbolEq(car, "progn")) {
+            int exp = this.heap.car(this.heap.reverse(this.heap.cdr(car)));
+            while (exp != 0) {
+                this.heap.push(stack, this.heap.copy(exp));
+                exp = this.heap.cdr(exp);
+            }
+            return true;
+        }
+        else if (this.heap.symbolEq(car, "pop-frame")) {
+            int last_val = this.heap.pop(values);
+            int last_frame = this.heap.pairGet(frame, "parentfr");
+            if (last_frame == 0) {
+                System.out.println("last_frame was zero");
                 return true;
             }
+            int last_values = this.heap.pairGet(last_frame, "values");
+            this.heap.push(last_values, last_val);
+            this.heap.pairSet(this.root, "frame", last_frame);
+            return true;
         }
-        heap.push(values, heap.copy(e));
+        else if (this.heap.symbolEq(car, "quote")) {
+            e = this.heap.cdr(e);
+            this.heap.push(values, e);
+            return true;
+        }
+        else if (this.heap.symbolEq(car, "vassign")) {
+            this.heap.pairSet(vars, this.heap.atomString(this.heap.cdr(car)), this.heap.cdr(this.heap.cdr(car)));
+            this.heap.push(values, this.heap.cdr(this.heap.cdr(car)));
+            return true;
+        }
+        else if (this.heap.symbolEq(car, "sassign")) {
+            this.heap.pairSet(syms, this.heap.atomString(this.heap.cdr(car)), this.heap.cdr(this.heap.cdr(car)));
+            this.heap.push(values, this.heap.cdr(this.heap.cdr(car)));
+            return true;
+        }
+        else if (this.heap.symbolEq(car, "cond")) {
+            int cond = this.heap.pop(e);
+            int first = this.heap.pop(e);
+            if (first == 0) {
+                return true;
+            }
+            int test = this.heap.car(first);
+            this.heap.push(e, cond);
+            this.heap.push(stack, e);
+            this.heap.push(stack, this.heap.list2(this.heap.newSymbol("then"), this.heap.cdr(test)));
+            this.heap.push(stack, test);
+            return true;
+        }
+        else if (this.heap.symbolEq(car, "while")) {
+            int test = this.heap.cdr(e);
+            int body = this.heap.cdr(test);
+            this.heap.push(stack, e); // push original while again
+            this.heap.push(stack, this.heap.list2(this.heap.newSymbol("then"), this.heap.cdr(body)));
+            this.heap.push(stack, test);
+            return true;
+        }
+        else if (this.heap.symbolEq(car, "then")) {
+            int test = this.heap.pop(values);
+            if (this.heap.isTrue(test)) {
+                this.heap.pop(stack); // remove cond
+                this.heap.push(stack, this.heap.cdr(car));
+            }
+            return true;
+        }
+        e = this.heap.car(e);
+        while (e != 0) {
+            this.heap.push(stack, this.heap.copy(e));
+            e = this.heap.cdr(e);
+        }
         return true;
     }
 
