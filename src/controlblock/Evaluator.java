@@ -102,9 +102,8 @@ class Evaluator {
             if (this.heap.symbolEq(car, "progn")) {
                 int exp = this.heap.car(this.heap.reverse(this.heap.cdr(car)));
                 while (exp != 0) {
-                    int nxt = this.heap.cdr(exp);
-                    this.heap.push(stack, exp);
-                    exp = nxt;
+                    this.heap.push(stack, this.heap.copy(exp));
+                    exp = this.heap.cdr(exp);
                 }
                 return true;
             }

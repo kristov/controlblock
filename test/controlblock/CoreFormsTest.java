@@ -81,8 +81,9 @@ public class CoreFormsTest {
         ConsHeap heap = new ConsHeap(255);
         Evaluator evaluator = new Evaluator(heap);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "progn ((1) (2) (3) (4))");
+        int e = parser.parseString(heap, "progn (1 2 3 4)");
         evaluator.eval(e);
         int result = evaluator.result();
+        heap.dump("result", result);
     }
 }
