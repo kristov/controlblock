@@ -335,12 +335,10 @@ public class ConsHeap {
     private void prepareHeap() {
         this.root = newCons();
         int frame = list1(newSymbol("frame"));
-        int frames = list2(newSymbol("frames"), newCons());
         int main = buildEnv();
         int menv = list2(newSymbol("main"), main);
         int symbols = list2(newSymbol("symbols"), list1(menv));
         push(this.root, symbols);
-        push(this.root, frames);
         push(this.root, frame);
     }
 
