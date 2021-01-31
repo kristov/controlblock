@@ -335,6 +335,9 @@ public class ConsHeap {
 
     public int dispatch(int symbol, int vars) {
         String sym = atomString(symbol);
+        if (sym.equals("root_e")) {
+            return this.root;
+        }
         if (sym.equals("plus_e")) {
             return plus_e(vars);
         }
@@ -353,6 +356,7 @@ public class ConsHeap {
 
     public int buildEnv() {
         int env = newCons();
+        addBuiltin(env, "ROOT", newCons(), "root_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
