@@ -16,14 +16,17 @@ public class ConsHeap {
     private final int[] heap;
     private final byte[] refcount;
     private Object[] objects;
+    private final byte[] objrefcount;
 
     public ConsHeap(int nrCons) {
         heap = new int[nrCons * 2];
         refcount = new byte[nrCons];
         refcount[0] = 99;
         heap_size = nrCons;
-        objects = new Object[1];
+        objects = new Object[nrCons];
         objects[0] = "NULL";
+        objrefcount = new byte[nrCons];
+        objrefcount[0] = 99;
         prepareHeap();
     }
 
@@ -251,17 +254,20 @@ public class ConsHeap {
         return heap[i * 2] == 0;
     }
 
-    /* Create a new symbol (string) */
     public int newSymbol(String symbol) {
-        int strIdx = addString(symbol);
+        int strIdx = addObject(symbol);
         int i = newCons();
-        heap[(i * 2)] = 0 - strIdx;
+        heap[(i * 2)] = strIdx;
         return i;
     }
 
     public int copy(int i) {
         int n = newCons();
-        heap[n * 2] = heap[i * 2];
+        int dst = heap[i * 2];
+        heap[n * 2] = dst;
+        if (dst < 0) {
+            refObject(dst);
+        }
         return n;
     }
 
@@ -291,16 +297,16 @@ public class ConsHeap {
         return thing.toString();
     }
 
-    /* Add a string to the global store of them */
-    private int addString(String toAdd) {
-        int at = objects.length;
-        Object[] newObjects = new Object[at + 1];
-        for (int i = 0; i < objects.length; i++) {
-            newObjects[i] = objects[i];
+    private int addObject(Object toAdd) {
+        int z = 1;
+        for (z = 1; z < heap_size; z++) {
+            if (objrefcount[z] == 0) {
+                objrefcount[z] = 1;
+                objects[z] = toAdd;
+                return 0 - z;
+            }
         }
-        newObjects[objects.length] = toAdd;
-        objects = newObjects;
-        return at;
+        return 0;
     }
 
     public String pairStringGet(int a, String b) {
@@ -333,13 +339,10 @@ public class ConsHeap {
     }
 
     private void prepareHeap() {
-        this.root = newCons();
         int frame = list1(newSymbol("frame"));
-        int main = buildEnv();
-        int menv = list2(newSymbol("main"), main);
-        int symbols = list2(newSymbol("symbols"), list1(menv));
-        push(this.root, symbols);
-        push(this.root, frame);
+        int builtins = list2(newSymbol("builtins"), buildEnv());
+        int symbols = list2(newSymbol("symbols"), newCons());
+        this.root = list3(frame, builtins, symbols);
     }
 
     public void prepareFirstFrame(int start) {
@@ -390,8 +393,7 @@ public class ConsHeap {
         int values = pairGet(frame, "values");
         int e = pop(stack);
         if (atom(e)) {
-            int symbols = pairGet(this.root, "symbols");
-            int main = pairGet(symbols, "main");
+            int main = pairGet(this.root, "builtins");
             e = resolveSymbol(main, e);
             e = resolveSymbol(syms, e);
             e = resolveSymbol(vars, e);
@@ -445,7 +447,7 @@ public class ConsHeap {
         }
         else if (symbolEq(car, "quote")) {
             e = cdr(e);
-            push(values, e);
+            push(values, copy(e));
             return true;
         }
         else if (symbolEq(car, "vassign")) {
@@ -605,8 +607,22 @@ public class ConsHeap {
         System.out.println();
     }
 
-    int refCount(int i) {
+    public int refCount(int i) {
         return this.refcount[i];
+    }
+
+    private void refObject(int id) {
+        id = 0 - id;
+        objrefcount[id]++;
+    }
+
+    private void derefObject(int id) {
+        id = 0 - id;
+        objrefcount[id]--;
+        if (objrefcount[id] <= 1) {
+            objrefcount[id] = 0;
+            objects[id] = null;
+        }
     }
 
     void deref(int i) {
@@ -618,7 +634,7 @@ public class ConsHeap {
             int j = this.heap[(i * 2) + 1];
             this.refcount[i] = 0;
             if (this.heap[i * 2] < 0) {
-                objects[0 - heap[i * 2]] = null;
+                derefObject(this.heap[i * 2]);
             }
             if (this.heap[i * 2] > 0) {
                 deref(this.heap[i * 2]);
