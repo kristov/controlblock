@@ -393,8 +393,8 @@ public class ConsHeap {
         int values = pairGet(frame, "values");
         int e = pop(stack);
         if (atom(e)) {
-            int main = pairGet(this.root, "builtins");
-            e = resolveSymbol(main, e);
+            int builtins = pairGet(this.root, "builtins");
+            e = resolveSymbol(builtins, e);
             e = resolveSymbol(syms, e);
             e = resolveSymbol(vars, e);
         }
