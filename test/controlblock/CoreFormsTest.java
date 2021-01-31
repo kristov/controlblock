@@ -79,4 +79,14 @@ public class CoreFormsTest {
         int result = heap.result();
         heap.dump("result", result);
     }
+
+    @Test
+    public void testQuote() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "quote (1 2 3 4)");
+        heap.evalExpression(e);
+        int result = heap.result();
+        heap.dump("result", result);
+    }
 }

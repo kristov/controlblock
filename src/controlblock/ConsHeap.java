@@ -27,7 +27,7 @@ public class ConsHeap {
         objects[0] = "NULL";
         objrefcount = new byte[nrCons];
         objrefcount[0] = 99;
-        prepareHeap();
+        prepareRoot();
     }
 
     /* Returns the atom (i) if an atom */
@@ -154,7 +154,7 @@ public class ConsHeap {
         }
         int head = car(a);
         if (head == 0) {
-            this.heap[a * 2] = list2(newSymbol(key), v);
+            this.heap[a * 2] = list2(sym(key), v);
             return a;
         }
         while (this.heap[(head * 2) + 1] > 0) {
@@ -170,7 +170,7 @@ public class ConsHeap {
             }
             head = this.heap[(head * 2) + 1];
         }
-        this.heap[(head * 2) + 1] = list2(newSymbol(key), v);
+        this.heap[(head * 2) + 1] = list2(sym(key), v);
         return a;
     }
 
@@ -254,7 +254,7 @@ public class ConsHeap {
         return heap[i * 2] == 0;
     }
 
-    public int newSymbol(String symbol) {
+    public int sym(String symbol) {
         int strIdx = addObject(symbol);
         int i = newCons();
         heap[(i * 2)] = strIdx;
@@ -317,31 +317,52 @@ public class ConsHeap {
         String a = pairStringGet(env, "a");
         String b = pairStringGet(env, "b");
         Float r = Float.valueOf(a) + Float.valueOf(b);
-        return newSymbol(r.toString());
+        return sym(r.toString());
     }
 
-    public int dispatch(int symbol, int env) {
+    private int pset_e(int vars) {
+        int list = pairGet(vars, "list");
+        String key = pairStringGet(vars, "key");
+        int value = pairGet(vars, "value");
+        return pairSet(list, key, value);
+    }
+
+    private int pget_e(int vars) {
+        int list = pairGet(vars, "list");
+        String key = pairStringGet(vars, "key");
+        return pairGet(list, key);
+    }
+
+    public int dispatch(int symbol, int vars) {
         String sym = atomString(symbol);
         if (sym.equals("plus_e")) {
-            return plus_e(env);
+            return plus_e(vars);
+        }
+        if (sym.equals("pset_e")) {
+            return pset_e(vars);
+        }
+        if (sym.equals("pget_e")) {
+            return pget_e(vars);
         }
         return 0;
     }
 
+    private void addBuiltin(int env, String symbol, int args, String builtin) {
+        append(env, list2(sym(symbol), list3(sym("lambda"), args, sym(builtin))));
+    }
+
     public int buildEnv() {
         int env = newCons();
-        append(env, list2(newSymbol("car"), list3(newSymbol("lambda"), list1(newSymbol("a")), newSymbol("car_e"))));
-        append(env, list2(newSymbol("cdr"), list3(newSymbol("lambda"), list1(newSymbol("a")), newSymbol("cdr_e"))));
-        append(env, list2(newSymbol("cons"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("cons_e"))));
-        append(env, list2(newSymbol("+"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("plus_e"))));
-        append(env, list2(newSymbol("eq"), list3(newSymbol("lambda"), list2(newSymbol("a"), newSymbol("b")), newSymbol("eq_e"))));
+        addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
+        addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
+        addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
         return env;
     }
 
-    private void prepareHeap() {
-        int frame = list1(newSymbol("frame"));
-        int builtins = list2(newSymbol("builtins"), buildEnv());
-        int symbols = list2(newSymbol("symbols"), newCons());
+    private void prepareRoot() {
+        int frame = list1(sym("frame"));
+        int builtins = list2(sym("builtins"), buildEnv());
+        int symbols = list2(sym("symbols"), newCons());
         this.root = list3(frame, builtins, symbols);
     }
 
@@ -364,11 +385,11 @@ public class ConsHeap {
     }
 
     public int newFrame(int parent) {
-        int parentfr = list2(newSymbol("parentfr"), parent);
-        int stack = list2(newSymbol("stack"), newCons());
-        int vars = list2(newSymbol("variables"), newCons());
-        int syms = list2(newSymbol("symbols"), newCons());
-        int values = list2(newSymbol("values"), newCons());
+        int parentfr = list2(sym("parentfr"), parent);
+        int stack = list2(sym("stack"), newCons());
+        int vars = list2(sym("variables"), newCons());
+        int syms = list2(sym("symbols"), newCons());
+        int values = list2(sym("values"), newCons());
         int frame = list5(parentfr, stack, vars, syms, values);
         pairSet(this.root, "frame", frame);
         return frame;
@@ -415,12 +436,12 @@ public class ConsHeap {
             };
             int body = cdr(cdr(car));
             if (atom(body)) {
-                push(stack, list1(newSymbol("pop-frame")));
+                push(stack, list1(sym("pop-frame")));
                 values = pairGet(frame, "values");
                 push(values, dispatch(body, vars));
             }
             else {
-                push(stack, list1(newSymbol("pop-frame")));
+                push(stack, list1(sym("pop-frame")));
                 push(stack, body);
             }
             return true;
@@ -446,8 +467,7 @@ public class ConsHeap {
             return true;
         }
         else if (symbolEq(car, "quote")) {
-            e = cdr(e);
-            push(values, copy(e));
+            push(values, copy(cdr(car)));
             return true;
         }
         else if (symbolEq(car, "vassign")) {
@@ -469,7 +489,7 @@ public class ConsHeap {
             int test = car(first);
             push(e, cond);
             push(stack, e);
-            push(stack, list2(newSymbol("then"), cdr(test)));
+            push(stack, list2(sym("then"), cdr(test)));
             push(stack, test);
             return true;
         }
@@ -477,7 +497,7 @@ public class ConsHeap {
             int test = cdr(e);
             int body = cdr(test);
             push(stack, e); // push original while again
-            push(stack, list2(newSymbol("then"), cdr(body)));
+            push(stack, list2(sym("then"), cdr(body)));
             push(stack, test);
             return true;
         }

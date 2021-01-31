@@ -24,14 +24,14 @@ public class ConsPairTest {
     public void testNewPair() {
         ConsHeap heap = new ConsHeap(255);
         int cons = heap.newCons();
-        int val1 = heap.newSymbol("VAL1");
+        int val1 = heap.sym("VAL1");
         heap.pairSet(cons, "key1", val1);
         assertEquals(heap.atomString(heap.car(heap.car(cons))), "key1");
         assertEquals(heap.cdr(heap.car(heap.car(cons))), val1);
-        int val2 = heap.newSymbol("VAL2");
+        int val2 = heap.sym("VAL2");
         heap.pairSet(cons, "key2", val2);
         assertEquals(heap.atomString(heap.car(heap.cdr(heap.car(cons)))), "key2");
-        int val3 = heap.newSymbol("VAL3");
+        int val3 = heap.sym("VAL3");
         heap.pairSet(cons, "key1", val3);
         assertEquals(heap.atomString(heap.cdr(heap.car(heap.car(cons)))), heap.atomString(val3));
     }
@@ -40,7 +40,7 @@ public class ConsPairTest {
     public void testNewPairGet() {
         ConsHeap heap = new ConsHeap(255);
         int cons = heap.newCons();
-        int val1 = heap.newSymbol("VAL1");
+        int val1 = heap.sym("VAL1");
         heap.pairSet(cons, "key1", val1);
         int gotval = heap.pairGet(cons, "key1");
         assertEquals(val1, gotval);

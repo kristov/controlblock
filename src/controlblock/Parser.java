@@ -10,7 +10,7 @@ public class Parser {
 
     private void appendIfWord(ConsHeap heap, int list, StringBuilder word) {
         if (word.length() > 0) {
-            int symbol = heap.newSymbol(word.toString());
+            int symbol = heap.sym(word.toString());
             heap.append(list, symbol);
             word.delete(0, word.length());
         }
@@ -46,7 +46,7 @@ public class Parser {
                 int ql = heap.newCons();
                 stack_ptr++;
                 stack[stack_ptr] = list;
-                int quote = heap.newSymbol("quote");
+                int quote = heap.sym("quote");
                 heap.append(ql, quote);
                 heap.append(list, ql);
                 list = ql;
