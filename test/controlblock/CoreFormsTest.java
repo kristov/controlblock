@@ -29,20 +29,20 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testVassign() {
+    public void testLeta() {
         ConsHeap heap = new ConsHeap(255);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "vassign bob geldof");
+        int e = parser.parseString(heap, "leta bob geldof");
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("geldof", heap.atomString(result));
     }
 
     @Test
-    public void testVassignStructure() {
+    public void testLetaStructure() {
         ConsHeap heap = new ConsHeap(255);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "vassign mylist (1 2 3)");
+        int e = parser.parseString(heap, "leta mylist (quote (1 2 3))");
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("1", heap.atomString(heap.car(result)));
@@ -92,16 +92,6 @@ public class CoreFormsTest {
         assertEquals("2", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("3", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("4", heap.atomString(result));
-    }
-
-    @Test
-    public void testDefun() {
-        ConsHeap heap = new ConsHeap(255);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "progn ((defun sum (quote (a b)) (quote (+ 2 (+ a b)))) (sum 2 4))");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("8.0", heap.atomString(result));
     }
 
     @Test

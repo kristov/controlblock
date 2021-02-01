@@ -155,7 +155,7 @@ public class ConsHeap {
         int head = car(a);
         if (head == 0) {
             this.heap[a * 2] = list2(sym(key), v);
-            return a;
+            return v;
         }
         while (this.heap[(head * 2) + 1] > 0) {
             int pair = car(head);
@@ -166,12 +166,12 @@ public class ConsHeap {
                 if (cdr_pair != 0) {
                     deref(cdr_pair);
                 }
-                return a;
+                return v;
             }
             head = this.heap[(head * 2) + 1];
         }
         this.heap[(head * 2) + 1] = list2(sym(key), v);
-        return a;
+        return v;
     }
 
     public void append(int a, int b) {
@@ -336,13 +336,11 @@ public class ConsHeap {
         return pairGet(list, key);
     }
 
-    private int defun_e(int frame) {
+    private int leta_e(int frame) {
         int vars = pairGet(frame, "variables");
         String name = pairStringGet(vars, "name");
-        int args = pairGet(vars, "args");
-        int body = pairGet(vars, "body");
-        int syms = pairGet(frame, "symbols");
-        return pairSet(syms, name, list3(sym("lambda"), args, body));
+        int value = pairGet(vars, "value");
+        return pairSet(vars, name, value);
     }
 
     public int dispatch(int symbol, int frame) {
@@ -359,8 +357,8 @@ public class ConsHeap {
         if (sym.equals("pget_e")) {
             return pget_e(frame);
         }
-        if (sym.equals("defun_e")) {
-            return defun_e(frame);
+        if (sym.equals("leta_e")) {
+            return leta_e(frame);
         }
         return 0;
     }
@@ -372,7 +370,7 @@ public class ConsHeap {
     public int buildEnv() {
         int env = newCons();
         addBuiltin(env, "ROOT", newCons(), "root_e");
-        addBuiltin(env, "defun", list3(sym("name"), sym("args"), sym("body")), "defun_e");
+        addBuiltin(env, "leta", list2(sym("name"), sym("value")), "leta_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
@@ -494,16 +492,6 @@ public class ConsHeap {
         }
         else if (symbolEq(car, "quote")) {
             push(values, copy(cdr(car)));
-            return true;
-        }
-        else if (symbolEq(car, "vassign")) {
-            pairSet(vars, atomString(cdr(car)), cdr(cdr(car)));
-            push(values, cdr(cdr(car)));
-            return true;
-        }
-        else if (symbolEq(car, "sassign")) {
-            pairSet(syms, atomString(cdr(car)), cdr(cdr(car)));
-            push(values, cdr(cdr(car)));
             return true;
         }
         else if (symbolEq(car, "cond")) {
