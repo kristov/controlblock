@@ -479,8 +479,8 @@ public class ConsHeap {
                 System.out.println("last_frame was zero");
                 return true;
             }
-            int last_values = pairGet(last_frame, "values");
-            push(last_values, last_val);
+            int last_stack = pairGet(last_frame, "stack");
+            push(last_stack, last_val);
             pairSet(this.root, "frame", last_frame);
             return true;
         }
