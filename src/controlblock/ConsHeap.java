@@ -134,6 +134,9 @@ public class ConsHeap {
 
     // a is a list of k/v pairs
     public int pairGet(int a, String key) {
+        if (a == 0) {
+            return 0;
+        }
         if (atom(a)) {
             return 0;
         }
@@ -149,6 +152,9 @@ public class ConsHeap {
     }
 
     public int pairSet(int a, String key, int v) {
+        if (a == 0) {
+            return 0;
+        }
         if (atom(a)) {
             return 0;
         }
@@ -224,30 +230,11 @@ public class ConsHeap {
     }
 
     public int car(int i) {
-//        if (heap[i * 2] < 0) {
-//            return 0;
-//        } WTF??
         return heap[i * 2];
     }
 
     public int cdr(int i) {
         return heap[(i * 2) + 1];
-    }
-
-    int setq(int i, int val) {
-        if (i == 0) {
-            System.out.println("Setting cell ZERO to a value!");
-        }
-        if (this.heap[i * 2] != 0) {
-            if ((this.heap[i * 2] < 0) && this.refcount[i] <= 2) {
-                objects[0 - heap[i * 2]] = null;
-            }
-            else {
-                deref(i);
-            }
-        }
-        this.heap[i * 2] = car(val);
-        return val;
     }
 
     public boolean empty(int i) {
@@ -290,6 +277,9 @@ public class ConsHeap {
     }
 
     public String atomString(int n) {
+        if (!atom(n)) {
+            return (String)objects[0];
+        }
         Object thing = objects[0 - heap[n * 2]];
         if (thing instanceof String) {
             return (String)thing;
@@ -364,7 +354,7 @@ public class ConsHeap {
     }
 
     private void addBuiltin(int env, String symbol, int args, String builtin) {
-        append(env, list2(sym(symbol), list3(sym("lambda"), args, sym(builtin))));
+        push(env, list2(sym(symbol), list3(sym("lambda"), args, sym(builtin))));
     }
 
     public int buildEnv() {
@@ -406,7 +396,11 @@ public class ConsHeap {
         int parentfr = list2(sym("parentfr"), parent);
         int stack = list2(sym("stack"), newCons());
         int vars = list2(sym("variables"), newCons());
-        int syms = list2(sym("symbols"), pairGet(parent, "symbols"));
+        int psyms = pairGet(parent, "symbols");
+        if (psyms == 0) {
+            psyms = newCons();
+        }
+        int syms = list2(sym("symbols"), psyms);
         int values = list2(sym("values"), newCons());
         int frame = list5(parentfr, stack, vars, syms, values);
         pairSet(this.root, "frame", frame);
@@ -521,6 +515,12 @@ public class ConsHeap {
                 pop(stack); // remove cond
                 push(stack, cdr(car));
             }
+            return true;
+        }
+        // Poorly thought out macro system
+        int macro = pairGet(pairGet(this.root, "macros"), atomString(car));
+        if (macro > 0) {
+            push(stack, macro);
             return true;
         }
         e = car(e);
