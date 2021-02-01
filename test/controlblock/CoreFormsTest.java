@@ -77,7 +77,7 @@ public class CoreFormsTest {
         int e = parser.parseString(heap, "progn (1 2 3 4)");
         heap.evalExpression(e);
         int result = heap.result();
-        heap.dump("result", result);
+        assertEquals("4", heap.atomString(result));
     }
 
     @Test
@@ -87,6 +87,20 @@ public class CoreFormsTest {
         int e = parser.parseString(heap, "quote (1 2 3 4)");
         heap.evalExpression(e);
         int result = heap.result();
-        heap.dump("result", result);
+        result = heap.car(result);
+        assertEquals("1", heap.atomString(result)); result = heap.cdr(result);
+        assertEquals("2", heap.atomString(result)); result = heap.cdr(result);
+        assertEquals("3", heap.atomString(result)); result = heap.cdr(result);
+        assertEquals("4", heap.atomString(result));
+    }
+
+    @Test
+    public void testDefun() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn ((defun sum (quote (a b)) (quote (+ 2 (+ a b)))) (sum 2 4))");
+        heap.evalExpression(e);
+        int result = heap.result();
+        assertEquals("8.0", heap.atomString(result));
     }
 }

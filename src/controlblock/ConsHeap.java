@@ -313,39 +313,54 @@ public class ConsHeap {
         return atomString(pairGet(a, b));
     }
 
-    private int plus_e(int env) {
-        String a = pairStringGet(env, "a");
-        String b = pairStringGet(env, "b");
+    private int plus_e(int frame) {
+        int vars = pairGet(frame, "variables");
+        String a = pairStringGet(vars, "a");
+        String b = pairStringGet(vars, "b");
         Float r = Float.valueOf(a) + Float.valueOf(b);
         return sym(r.toString());
     }
 
-    private int pset_e(int vars) {
+    private int pset_e(int frame) {
+        int vars = pairGet(frame, "variables");
         int list = pairGet(vars, "list");
         String key = pairStringGet(vars, "key");
         int value = pairGet(vars, "value");
         return pairSet(list, key, value);
     }
 
-    private int pget_e(int vars) {
+    private int pget_e(int frame) {
+        int vars = pairGet(frame, "variables");
         int list = pairGet(vars, "list");
         String key = pairStringGet(vars, "key");
         return pairGet(list, key);
     }
 
-    public int dispatch(int symbol, int vars) {
+    private int defun_e(int frame) {
+        int vars = pairGet(frame, "variables");
+        String name = pairStringGet(vars, "name");
+        int args = pairGet(vars, "args");
+        int body = pairGet(vars, "body");
+        int syms = pairGet(frame, "symbols");
+        return pairSet(syms, name, list3(sym("lambda"), args, body));
+    }
+
+    public int dispatch(int symbol, int frame) {
         String sym = atomString(symbol);
         if (sym.equals("root_e")) {
             return this.root;
         }
         if (sym.equals("plus_e")) {
-            return plus_e(vars);
+            return plus_e(frame);
         }
         if (sym.equals("pset_e")) {
-            return pset_e(vars);
+            return pset_e(frame);
         }
         if (sym.equals("pget_e")) {
-            return pget_e(vars);
+            return pget_e(frame);
+        }
+        if (sym.equals("defun_e")) {
+            return defun_e(frame);
         }
         return 0;
     }
@@ -357,6 +372,7 @@ public class ConsHeap {
     public int buildEnv() {
         int env = newCons();
         addBuiltin(env, "ROOT", newCons(), "root_e");
+        addBuiltin(env, "defun", list3(sym("name"), sym("args"), sym("body")), "defun_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
@@ -392,7 +408,7 @@ public class ConsHeap {
         int parentfr = list2(sym("parentfr"), parent);
         int stack = list2(sym("stack"), newCons());
         int vars = list2(sym("variables"), newCons());
-        int syms = list2(sym("symbols"), newCons());
+        int syms = list2(sym("symbols"), pairGet(parent, "symbols"));
         int values = list2(sym("values"), newCons());
         int frame = list5(parentfr, stack, vars, syms, values);
         pairSet(this.root, "frame", frame);
@@ -442,7 +458,7 @@ public class ConsHeap {
             if (atom(body)) {
                 push(stack, list1(sym("pop-frame")));
                 values = pairGet(frame, "values");
-                push(values, dispatch(body, vars));
+                push(values, dispatch(body, frame));
             }
             else {
                 push(stack, list1(sym("pop-frame")));
