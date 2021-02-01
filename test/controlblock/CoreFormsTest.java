@@ -103,4 +103,14 @@ public class CoreFormsTest {
         int result = heap.result();
         assertEquals("8.0", heap.atomString(result));
     }
+
+    @Test
+    public void testDefine() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn ((define sum (lambda (a b) (+ 2 (+ a b)))) (sum 2 4))");
+        heap.evalExpression(e);
+        int result = heap.result();
+        assertEquals("8.0", heap.atomString(result));
+    }
 }

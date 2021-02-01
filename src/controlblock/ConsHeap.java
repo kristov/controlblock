@@ -466,6 +466,12 @@ public class ConsHeap {
             }
             return true;
         }
+        if (symbolEq(car, "define")) {
+            int name = cdr(car);
+            int value = cdr(name);
+            pairSet(syms, atomString(name), value);
+            return true;
+        }
         if (symbolEq(car, "progn")) {
             int exp = car(reverse(cdr(car)));
             while (exp != 0) {
