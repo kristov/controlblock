@@ -103,4 +103,56 @@ public class CoreFormsTest {
         int result = heap.result();
         assertEquals("8.0", heap.atomString(result));
     }
+
+    @Test
+    public void testDotDupV() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn ((20) (.dupv))");
+        heap.evalExpression(e);
+        int values = heap.getValues();
+        int v1 = heap.car(values);
+        assertEquals("20", heap.atomString(v1)); v1 = heap.cdr(v1);
+        assertEquals("20", heap.atomString(v1));
+    }
+
+    @Test
+    public void testDotSym() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "(.sym boo)");
+        heap.evalExpression(e);
+        int values = heap.getValues();
+        int v1 = heap.car(values);
+        assertEquals("boo", heap.atomString(v1));
+    }
+
+    @Test
+    public void testDotList2() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn (1 2 (.list2))");
+        heap.evalExpression(e);
+        int values = heap.getValues();
+        int v1 = heap.car(heap.car(values));
+        assertEquals("1", heap.atomString(v1)); v1 = heap.cdr(v1);
+        assertEquals("2", heap.atomString(v1));
+    }
+
+    @Test
+    public void testDotPushS() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn ((20) (.pushs))");
+        heap.prepareFirstFrame(e);
+        heap.eval();
+        heap.eval();
+        heap.eval();
+        heap.eval();
+        int len = heap.length(heap.getValues());
+        assertEquals("0", heap.atomString(len));
+        int stack = heap.getStack();
+        int v1 = heap.car(stack);
+        assertEquals("20", heap.atomString(v1));
+    }
 }

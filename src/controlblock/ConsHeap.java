@@ -241,6 +241,16 @@ public class ConsHeap {
         return heap[i * 2] == 0;
     }
 
+    public int length(int i) {
+        i = car(i);
+        int len = 0;
+        while (i > 0) {
+            len++;
+            i = cdr(i);
+        }
+        return sym(Integer.toString(i));
+    }
+
     public int sym(String symbol) {
         int strIdx = addObject(symbol);
         int i = newCons();
@@ -330,7 +340,8 @@ public class ConsHeap {
         int vars = pairGet(frame, "variables");
         String name = pairStringGet(vars, "name");
         int value = pairGet(vars, "value");
-        return pairSet(vars, name, value);
+        int ret = pairSet(vars, name, value);
+        return list2(sym("quote"), ret);
     }
 
     public int dispatch(int symbol, int frame) {
@@ -384,6 +395,18 @@ public class ConsHeap {
         prepareFirstFrame(start);
         eval();
         while (eval()) {}
+    }
+
+    public int getCurrentFrame() {
+        return pairGet(this.root, "frame");
+    }
+
+    public int getValues() {
+        return pairGet(getCurrentFrame(), "values");
+    }
+
+    public int getStack() {
+        return pairGet(getCurrentFrame(), "stack");
     }
 
     public int result() {
@@ -519,15 +542,19 @@ public class ConsHeap {
         }
         else if (symbolEq(car, ".dupv")) {
             push(values, copy(car(values)));
+            return true;
         }
         else if (symbolEq(car, ".pushs")) {
             push(stack, pop(values));
+            return true;
         }
         else if (symbolEq(car, ".cdr")) {
             push(values, cdr(pop(values)));
+            return true;
         }
         else if (symbolEq(car, ".sym")) {
             push(values, copy(cdr(car)));
+            return true;
         }
         else if (symbolEq(car, ".list2")) {
             int v2 = pop(values);
@@ -535,6 +562,8 @@ public class ConsHeap {
             int list = newCons();
             push(list, v2);
             push(list, v1);
+            push(values, list);
+            return true;
         }
         // Poorly thought out macro system
         int macro = pairGet(pairGet(this.root, "macros"), atomString(car));
