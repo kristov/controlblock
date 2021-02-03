@@ -517,6 +517,25 @@ public class ConsHeap {
             }
             return true;
         }
+        else if (symbolEq(car, ".dupv")) {
+            push(values, copy(car(values)));
+        }
+        else if (symbolEq(car, ".pushs")) {
+            push(stack, pop(values));
+        }
+        else if (symbolEq(car, ".cdr")) {
+            push(values, cdr(pop(values)));
+        }
+        else if (symbolEq(car, ".sym")) {
+            push(values, copy(cdr(car)));
+        }
+        else if (symbolEq(car, ".list2")) {
+            int v2 = pop(values);
+            int v1 = pop(values);
+            int list = newCons();
+            push(list, v2);
+            push(list, v1);
+        }
         // Poorly thought out macro system
         int macro = pairGet(pairGet(this.root, "macros"), atomString(car));
         if (macro > 0) {
