@@ -1,5 +1,7 @@
 package controlblock;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -258,6 +260,13 @@ public class ConsHeap {
         return i;
     }
 
+    public int obj(Object obj) {
+        int idx = addObject(obj);
+        int i = newCons();
+        heap[(i * 2)] = idx;
+        return i;
+    }
+
     public int copy(int i) {
         int n = newCons();
         int dst = heap[i * 2];
@@ -287,14 +296,18 @@ public class ConsHeap {
     }
 
     public String atomString(int n) {
-        if (!atom(n)) {
-            return (String)objects[0];
-        }
-        Object thing = objects[0 - heap[n * 2]];
+        Object thing = atomObject(n);
         if (thing instanceof String) {
             return (String)thing;
         }
         return thing.toString();
+    }
+
+    public Object atomObject(int n) {
+        if (!atom(n)) {
+            return (String)objects[0];
+        }
+        return objects[0 - heap[n * 2]];
     }
 
     private int addObject(Object toAdd) {
@@ -344,37 +357,47 @@ public class ConsHeap {
         return list2(sym("quote"), ret);
     }
 
-    public int dispatch(int symbol, int frame) {
-        String sym = atomString(symbol);
-        if (sym.equals("root_e")) {
-            return this.root;
-        }
-        if (sym.equals("plus_e")) {
-            return plus_e(frame);
-        }
-        if (sym.equals("pset_e")) {
-            return pset_e(frame);
-        }
-        if (sym.equals("pget_e")) {
-            return pget_e(frame);
-        }
-        if (sym.equals("leta_e")) {
-            return leta_e(frame);
-        }
+    private int import_java_class_e(int frame) {
         return 0;
     }
 
+    public int dispatch(int funcsym, int frame) {
+        Object thing = atomObject(funcsym);
+        if (thing instanceof Method) {
+            Method method = (Method)thing;
+            try {
+                return (int)method.invoke(this, frame);
+            }
+            catch (InvocationTargetException e) { System.out.println(e.toString()); return 0; }
+            catch (IllegalAccessException e) { System.out.println(e.toString()); return 0; }
+        }
+        System.out.println("thing was not an instance of a method!");
+        return 0;
+    }
+
+    private Method getMethod(String sym) {
+        Class[] args = new Class[1];
+        args[0] = int.class;
+        try {
+            System.out.println(sym);
+            return this.getClass().getDeclaredMethod(sym, args);
+        }
+        catch (NoSuchMethodException e) { System.out.println(e.toString()); return null; }
+        catch (SecurityException e) { System.out.println(e.toString()); return null; }
+    }
+
     private void addBuiltin(int env, String symbol, int args, String builtin) {
-        push(env, list2(sym(symbol), list3(sym("lambda"), args, sym(builtin))));
+        Method method = getMethod(builtin);
+        push(env, list2(sym(symbol), list3(sym("lambda"), args, obj(method))));
     }
 
     public int buildEnv() {
         int env = newCons();
-        addBuiltin(env, "ROOT", newCons(), "root_e");
         addBuiltin(env, "leta", list2(sym("name"), sym("value")), "leta_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
+        addBuiltin(env, "import-java-class", list1(sym("package")), "import_java_class_e");
         return env;
     }
 
