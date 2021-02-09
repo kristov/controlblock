@@ -327,32 +327,33 @@ public class ConsHeap {
     }
 
     private int plus_e(int frame) {
-        int vars = pairGet(frame, "variables");
-        String a = pairStringGet(vars, "a");
-        String b = pairStringGet(vars, "b");
+        int values = pairGet(frame, "values");
+        String a = atomString(pop(values));
+        String b = atomString(pop(values));
         Float r = Float.valueOf(a) + Float.valueOf(b);
         return sym(r.toString());
     }
 
     private int pset_e(int frame) {
-        int vars = pairGet(frame, "variables");
-        int list = pairGet(vars, "list");
-        String key = pairStringGet(vars, "key");
-        int value = pairGet(vars, "value");
+        int values = pairGet(frame, "values");
+        int value = pop(values);
+        String key = atomString(pop(values));
+        int list = pop(values);
         return pairSet(list, key, value);
     }
 
     private int pget_e(int frame) {
-        int vars = pairGet(frame, "variables");
-        int list = pairGet(vars, "list");
-        String key = pairStringGet(vars, "key");
+        int values = pairGet(frame, "values");
+        String key = atomString(pop(values));
+        int list = pop(values);
         return pairGet(list, key);
     }
 
     private int leta_e(int frame) {
+        int values = pairGet(frame, "values");
+        String name = atomString(pop(values));
+        int value = pop(values);
         int vars = pairGet(frame, "variables");
-        String name = pairStringGet(vars, "name");
-        int value = pairGet(vars, "value");
         int ret = pairSet(vars, name, value);
         return list2(sym("quote"), ret);
     }
@@ -379,7 +380,6 @@ public class ConsHeap {
         Class[] args = new Class[1];
         args[0] = int.class;
         try {
-            System.out.println(sym);
             return this.getClass().getDeclaredMethod(sym, args);
         }
         catch (NoSuchMethodException e) { System.out.println(e.toString()); return null; }
@@ -483,6 +483,11 @@ public class ConsHeap {
         }
         int car = car(e);
         if (symbolEq(car, "lambda")) {
+            int body = cdr(cdr(car));
+            if (atom(body)) {
+                push(stack, dispatch(body, frame));
+                return true;
+            }
             frame = newFrame(frame);
             stack = pairGet(frame, "stack");
             vars = pairGet(frame, "variables");
@@ -491,17 +496,9 @@ public class ConsHeap {
                 int val = pop(values);
                 pairSet(vars, atomString(arg), val);
                 arg = cdr(arg);
-            };
-            int body = cdr(cdr(car));
-            if (atom(body)) {
-                push(stack, list1(sym("pop-frame")));
-                values = pairGet(frame, "values");
-                push(values, dispatch(body, frame));
             }
-            else {
-                push(stack, list1(sym("pop-frame")));
-                push(stack, body);
-            }
+            push(stack, list1(sym("pop-frame")));
+            push(stack, body);
             return true;
         }
         if (symbolEq(car, "define")) {
