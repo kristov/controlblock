@@ -1,9 +1,5 @@
 package controlblock;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -95,13 +91,45 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testDefine() {
+    public void testSymbol() {
         ConsHeap heap = new ConsHeap(255);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "progn ((define sum (lambda (a b) (+ 2 (+ a b)))) (sum 2 4))");
+        int e = parser.parseString(heap, "progn ((symbol sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))");
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("8.0", heap.atomString(result));
+    }
+
+    @Test
+    public void testJInteger() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "jinteger 5");
+        heap.evalExpression(e);
+        int result = heap.result();
+        assertEquals("5", heap.atomString(result));
+    }
+
+    @Test
+    public void testJNew() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "jnew java.lang.Integer 1 10");
+        heap.evalExpression(e);
+        int result = heap.result();
+        heap.dump("result", result);
+        //assertEquals("8.0", heap.atomString(result));
+    }
+
+    @Test
+    public void testJMethod() {
+        ConsHeap heap = new ConsHeap(255);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "progn ((leta theInt (jnew java.lang.Integer 1 10)) (jmethod toString 1 theInt))");
+        heap.evalExpression(e);
+        int stack = heap.getStack();
+        heap.dump("stack", stack);
+        //assertEquals("8.0", heap.atomString(result));
     }
 
     @Test

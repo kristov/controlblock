@@ -1,9 +1,8 @@
 package controlblock;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 /* The heap is an array of ints nrCons * 2 in size. A cell is identified by an
  * id int. The location of the cell in the array is id * 2. Int 1 of the cell is
@@ -326,6 +325,10 @@ public class ConsHeap {
         return atomString(pairGet(a, b));
     }
 
+    private int HALT(String reason) {
+        return list2(sym("HALT"), sym(reason));
+    }
+
     private int plus_e(int frame) {
         int values = pairGet(frame, "values");
         String a = atomString(pop(values));
@@ -336,17 +339,26 @@ public class ConsHeap {
 
     private int pset_e(int frame) {
         int values = pairGet(frame, "values");
-        int value = pop(values);
-        String key = atomString(pop(values));
         int list = pop(values);
+        String key = atomString(pop(values));
+        int value = pop(values);
         return pairSet(list, key, value);
     }
 
     private int pget_e(int frame) {
         int values = pairGet(frame, "values");
-        String key = atomString(pop(values));
         int list = pop(values);
+        String key = atomString(pop(values));
         return pairGet(list, key);
+    }
+
+    private int symbol_e(int frame) {
+        int values = pairGet(frame, "values");
+        int name = pop(values);
+        int value = pop(values);
+        int syms = pairGet(frame, "symbols");
+        pairSet(syms, atomString(name), value);
+        return 0;
     }
 
     private int leta_e(int frame) {
@@ -358,7 +370,67 @@ public class ConsHeap {
         return list2(sym("quote"), ret);
     }
 
-    private int import_java_class_e(int frame) {
+    private int jinteger_e(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        int integer = Integer.parseInt(val);
+        return obj(new Integer(integer));
+    }
+
+    private int jnew_e(int frame) {
+        int values = pairGet(frame, "values");
+        String clstr = atomString(pop(values));
+        Class cl;
+        try {
+            cl = Class.forName(clstr);
+        }
+        catch (ClassNotFoundException e) { System.out.println(e.toString()); return 0; }
+        String argcs = atomString(pop(values));
+        int argc = Integer.parseInt(argcs);
+        Object[] args = new Object[argc];
+        Class[] types = new Class[argc];
+        for (int i = 0; i < argc; i++) {
+            int arg = pop(values);
+            Object obj = atomObject(arg);
+            args[i] = obj;
+            types[i] = obj.getClass();
+        }
+        Constructor con;
+        try {
+            con = cl.getConstructor(types);
+        }
+        catch (NoSuchMethodException e) { return HALT(e.toString()); }
+        catch (SecurityException e) { return HALT(e.toString()); }
+        Object object;
+        try {
+            object = con.newInstance(args);
+        }
+        catch (InstantiationException e) { return HALT(e.toString()); }
+        catch (IllegalAccessException e) { return HALT(e.toString()); }
+        catch (IllegalArgumentException e) { return HALT(e.toString()); }
+        catch (InvocationTargetException e) { return HALT(e.toString()); }
+        return obj(object);
+    }
+
+    private int jmethod_e(int frame) {
+        int values = pairGet(frame, "values");
+        String sym = atomString(pop(values));
+        String argcs = atomString(pop(values));
+        int argc = Integer.parseInt(argcs);
+        Object[] args = new Object[argc];
+        Class[] types = new Class[argc];
+        for (int i = 0; i < argc; i++) {
+            int arg = pop(values);
+            Object obj = atomObject(arg);
+            args[i] = obj;
+            types[i] = obj.getClass();
+        }
+        Method method;
+        try {
+            method = this.getClass().getMethod(sym, types);
+        }
+        catch (NoSuchMethodException e) { return HALT(e.toString()); }
+        catch (SecurityException e) { return HALT(e.toString()); }
         return 0;
     }
 
@@ -369,8 +441,8 @@ public class ConsHeap {
             try {
                 return (int)method.invoke(this, frame);
             }
-            catch (InvocationTargetException e) { System.out.println(e.toString()); return 0; }
-            catch (IllegalAccessException e) { System.out.println(e.toString()); return 0; }
+            catch (InvocationTargetException e) { return HALT(e.toString()); }
+            catch (IllegalAccessException e) { return HALT(e.toString()); }
         }
         System.out.println("thing was not an instance of a method!");
         return 0;
@@ -388,6 +460,9 @@ public class ConsHeap {
 
     private void addBuiltin(int env, String symbol, int args, String builtin) {
         Method method = getMethod(builtin);
+        if (method == null) {
+            return;
+        }
         push(env, list2(sym(symbol), list3(sym("lambda"), args, obj(method))));
     }
 
@@ -397,7 +472,10 @@ public class ConsHeap {
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
-        addBuiltin(env, "import-java-class", list1(sym("package")), "import_java_class_e");
+        addBuiltin(env, "symbol", list2(sym("name"), sym("value")), "symbol_e");
+        addBuiltin(env, "jinteger", list1(sym("integer")), "jinteger_e");
+        addBuiltin(env, "jnew", list3(sym("method"), sym("argc"), sym("args")), "jnew_e");
+        addBuiltin(env, "jmethod", list3(sym("method"), sym("argc"), sym("args")), "jmethod_e");
         return env;
     }
 
@@ -485,7 +563,10 @@ public class ConsHeap {
         if (symbolEq(car, "lambda")) {
             int body = cdr(cdr(car));
             if (atom(body)) {
-                push(stack, dispatch(body, frame));
+                int val = dispatch(body, frame);
+                if (val > 0) {
+                    push(stack, val);
+                }
                 return true;
             }
             frame = newFrame(frame);
@@ -501,11 +582,9 @@ public class ConsHeap {
             push(stack, body);
             return true;
         }
-        if (symbolEq(car, "define")) {
-            int name = cdr(car);
-            int value = cdr(name);
-            pairSet(syms, atomString(name), value);
-            return true;
+        if (symbolEq(car, "HALT")) {
+            push(stack, e);
+            return false;
         }
         if (symbolEq(car, "progn")) {
             int exp = car(reverse(cdr(car)));
