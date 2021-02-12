@@ -370,11 +370,60 @@ public class ConsHeap {
         return list2(sym("quote"), ret);
     }
 
-    private int jinteger_e(int frame) {
+    private int jbyte(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Byte obj = Byte.parseByte(val);
+        return obj(obj);
+    }
+
+    private int jshort(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Short obj = Short.parseShort(val);
+        return obj(obj);
+    }
+
+    private int jint(int frame) {
         int values = pairGet(frame, "values");
         String val = atomString(pop(values));
         int integer = Integer.parseInt(val);
         return obj(new Integer(integer));
+    }
+
+    private int jlong(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Long obj = Long.parseLong(val);
+        return obj(obj);
+    }
+
+    private int jfloat(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Float obj = Float.parseFloat(val);
+        return obj(obj);
+    }
+
+    private int jdouble(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Double obj = Double.parseDouble(val);
+        return obj(obj);
+    }
+
+    private int jchar(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Character obj = new Character(val.charAt(0));
+        return obj(obj);
+    }
+
+    private int jboolean(int frame) {
+        int values = pairGet(frame, "values");
+        String val = atomString(pop(values));
+        Boolean obj = Boolean.parseBoolean(val);
+        return obj(obj);
     }
 
     private int jnew_e(int frame) {
@@ -473,7 +522,14 @@ public class ConsHeap {
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
         addBuiltin(env, "symbol", list2(sym("name"), sym("value")), "symbol_e");
-        addBuiltin(env, "jinteger", list1(sym("integer")), "jinteger_e");
+        addBuiltin(env, "jbyte", list1(sym("byte")), "jbyte");
+        addBuiltin(env, "jshort", list1(sym("short")), "jshort");
+        addBuiltin(env, "jint", list1(sym("integer")), "jint");
+        addBuiltin(env, "jlong", list1(sym("long")), "jlong");
+        addBuiltin(env, "jfloat", list1(sym("float")), "jfloat");
+        addBuiltin(env, "jdouble", list1(sym("double")), "jdouble");
+        addBuiltin(env, "jchar", list1(sym("char")), "jchar");
+        addBuiltin(env, "jboolean", list1(sym("boolean")), "jboolean");
         addBuiltin(env, "jnew", list3(sym("method"), sym("argc"), sym("args")), "jnew_e");
         addBuiltin(env, "jmethod", list3(sym("method"), sym("argc"), sym("args")), "jmethod_e");
         return env;

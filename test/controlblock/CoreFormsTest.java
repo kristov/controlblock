@@ -101,10 +101,10 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testJInteger() {
+    public void testJInt() {
         ConsHeap heap = new ConsHeap(255);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "jinteger 5");
+        int e = parser.parseString(heap, "jint 5");
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("5", heap.atomString(result));
