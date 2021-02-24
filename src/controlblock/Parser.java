@@ -1,5 +1,10 @@
 package controlblock;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+
 public class Parser {
     private int[] stack;
     private int stack_ptr = 0;
@@ -16,8 +21,20 @@ public class Parser {
         }
     }
 
-    /* Parses the string and returns the root id */
     public int parseString(ConsHeap heap, String chunk) {
+        Reader inputString = new StringReader(chunk);
+        BufferedReader reader = new BufferedReader(inputString);
+        int ret = 0;
+        try {
+            ret = parseBuffer(heap, reader);
+        }
+        catch (IOException e) {
+            System.out.println(e.toString());
+        }
+        return ret;
+    }
+
+    public int parseBuffer(ConsHeap heap, BufferedReader reader) throws IOException {
         stack_ptr = 0;
         int qlist = 0;
 
@@ -31,8 +48,8 @@ public class Parser {
         // A boolean to mark when the end of a token is detected
         boolean word_complete = false;
 
-        for (int i = 0; i < chunk.length(); i++) {
-            char c = chunk.charAt(i);
+        char c = 0;
+        while ((c = readChar(reader)) > 0) {
             if (c == ' ') {
                 word_complete = true;
             }
@@ -68,5 +85,19 @@ public class Parser {
         }
         appendIfWord(heap, list, word);
         return stack[0];
+    }
+
+    private char readChar(BufferedReader reader) {
+        char c = 0;
+        try {
+            int i = reader.read();
+            if (i != -1) {
+                c = (char)i;
+            }
+        }
+        catch (IOException e) {
+            System.out.println(e.toString());
+        }
+        return c;
     }
 }
