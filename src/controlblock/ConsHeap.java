@@ -249,7 +249,7 @@ public class ConsHeap {
             len++;
             i = cdr(i);
         }
-        return sym(Integer.toString(i));
+        return len;
     }
 
     public int sym(String symbol) {
@@ -327,6 +327,19 @@ public class ConsHeap {
 
     private int HALT(String reason) {
         return list2(sym("HALT"), sym(reason));
+    }
+
+    private int bind_e(int frame) {
+        int values = pairGet(frame, "values");
+        int name = pop(values);
+        int symbols = pairGet(this.root, "symbols");
+        int sym = pairGet(symbols, atomString(name));
+        if (sym == 0) {
+            sym = newCons();
+            pairSet(symbols, atomString(name), sym);
+        }
+        pairSet(frame, "symbols", sym);
+        return name;
     }
 
     private int plus_e(int frame) {
@@ -564,6 +577,18 @@ public class ConsHeap {
 
     public int getStack() {
         return pairGet(getCurrentFrame(), "stack");
+    }
+
+    public int getRoot() {
+        return this.root;
+    }
+
+    public int getBuiltins() {
+        return pairGet(this.root, "builtins");
+    }
+
+    public int getSymbol(int table, String symbol) {
+        return pairGet(table, symbol);
     }
 
     public int result() {
