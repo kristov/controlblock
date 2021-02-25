@@ -18,26 +18,52 @@ public class ConsHeap {
     private final byte[] refcount;
     private Object[] objects;
     private final byte[] objrefcount;
+    private final Flag flag;
 
     public ConsHeap(int nrCons) {
         heap = new int[nrCons * 2];
         refcount = new byte[nrCons];
-        refcount[0] = 99;
+        refcount[0] = 2;
         heap_size = nrCons;
         objects = new Object[nrCons];
-        objects[0] = "NULL";
+        objects[0] = "NIL";
         objrefcount = new byte[nrCons];
-        objrefcount[0] = 99;
+        objrefcount[0] = 2;
+        flag = new Flag(nrCons);
         prepareRoot();
     }
 
-    /* Returns the atom (i) if an atom */
+    private void prepareRoot() {
+        int frame = list1(sym("frame"));
+        int builtins = list2(sym("builtins"), buildEnv());
+        int symbols = list2(sym("symbols"), newCons());
+        this.root = list3(frame, builtins, symbols);
+        newFrame(0);
+    }
+
     public boolean atom(int i) {
         return heap[i * 2] < 0;
     }
 
-    public void cons(int a, int b) {
-        heap[(a * 2) + 1] = b;
+    public int car(int i) {
+        return heap[i * 2];
+    }
+
+    public int cdr(int i) {
+        return heap[(i * 2) + 1];
+    }
+
+    public int cons(int car, int cdr) {
+        int c = newCons();
+        heap[c * 2] = car;
+        heap[(c * 2) + 1] = cdr;
+        if (car > 0) {
+            refcount[car]++;
+        }
+        if (cdr > 0) {
+            refcount[cdr]++;
+        }
+        return c;
     }
 
     public int list1(int a) {
@@ -109,6 +135,9 @@ public class ConsHeap {
                 return false;
             }
             return true;
+        }
+        if (length(n) == 0) {
+            return false;
         }
         return true;
     }
@@ -230,14 +259,6 @@ public class ConsHeap {
         return rev;
     }
 
-    public int car(int i) {
-        return heap[i * 2];
-    }
-
-    public int cdr(int i) {
-        return heap[(i * 2) + 1];
-    }
-
     public boolean empty(int i) {
         return heap[i * 2] == 0;
     }
@@ -268,7 +289,7 @@ public class ConsHeap {
 
     public int copy(int i) {
         int n = newCons();
-        int dst = heap[i * 2];
+        int dst = car(i);
         heap[n * 2] = dst;
         if (dst < 0) {
             refObject(dst);
@@ -329,17 +350,28 @@ public class ConsHeap {
         return list2(sym("HALT"), sym(reason));
     }
 
-    private int bind_e(int frame) {
+    private int quote(int i) {
+        return list2(sym("quote"), i);
+    }
+
+    private int nil_e(int frame) {
+        return 0;
+    }
+
+    private int cons_e(int frame) {
         int values = pairGet(frame, "values");
-        int name = pop(values);
-        int symbols = pairGet(this.root, "symbols");
-        int sym = pairGet(symbols, atomString(name));
-        if (sym == 0) {
-            sym = newCons();
-            pairSet(symbols, atomString(name), sym);
-        }
-        pairSet(frame, "symbols", sym);
-        return name;
+        int car = pop(values);
+        int cdr = pop(values);
+        int c = cons(car(car), copy(cdr));
+        return c;
+    }
+
+    private int list_e(int frame) {
+        int values = pairGet(frame, "values");
+        int car = pop(values);
+        int list = newCons();
+        push(list, car);
+        return quote(list);
     }
 
     private int plus_e(int frame) {
@@ -348,6 +380,25 @@ public class ConsHeap {
         String b = atomString(pop(values));
         Float r = Float.valueOf(a) + Float.valueOf(b);
         return sym(r.toString());
+    }
+
+    private int minus_e(int frame) {
+        int values = pairGet(frame, "values");
+        String a = atomString(pop(values));
+        String b = atomString(pop(values));
+        Float r = Float.valueOf(a) - Float.valueOf(b);
+        return sym(r.toString());
+    }
+
+    private int greaterthan_e(int frame) {
+        int values = pairGet(frame, "values");
+        String a = atomString(pop(values));
+        String b = atomString(pop(values));
+        Float r = Float.valueOf(a) + Float.valueOf(b);
+        if (Float.valueOf(a) > Float.valueOf(b)) {
+            return sym("true");
+        }
+        return quote(newCons());
     }
 
     private int pset_e(int frame) {
@@ -374,13 +425,37 @@ public class ConsHeap {
         return 0;
     }
 
+    private int frame_e(int frame) {
+        int values = pairGet(frame, "values");
+        int parentfr = list2(sym("parentfr"), frame);
+        int symbols = list2(sym("symbols"), pop(values));
+        int variables = list2(sym("variables"), pop(values));
+        int stack = list2(sym("stack"), pop(values));
+        int nvalues = list2(sym("values"), newCons());
+        int nframe = list5(parentfr, symbols, variables, stack, nvalues);
+        pairSet(this.root, "frame", nframe);
+        return 0;
+    }
+
+    private int symbols_e(int frame) {
+        int values = pairGet(frame, "values");
+        int namespace = pop(values);
+        int symbols = pairGet(this.root, "symbols");
+        int sym = pairGet(symbols, atomString(namespace));
+        if (sym == 0) {
+            sym = newCons();
+            pairSet(symbols, atomString(namespace), sym);
+        }
+        return quote(sym);
+    }
+
     private int leta_e(int frame) {
         int values = pairGet(frame, "values");
         String name = atomString(pop(values));
         int value = pop(values);
         int vars = pairGet(frame, "variables");
         int ret = pairSet(vars, name, value);
-        return list2(sym("quote"), ret);
+        return quote(ret);
     }
 
     private int jbyte(int frame) {
@@ -530,11 +605,18 @@ public class ConsHeap {
 
     public int buildEnv() {
         int env = newCons();
+        addBuiltin(env, "NIL", newCons(), "nil_e");
+        addBuiltin(env, "cons", newCons(), "cons_e");
+        addBuiltin(env, "list", list1(sym("car")), "list_e");
         addBuiltin(env, "leta", list2(sym("name"), sym("value")), "leta_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
+        addBuiltin(env, ">", list2(sym("a"), sym("b")), "greaterthan_e");
+        addBuiltin(env, "-", list2(sym("a"), sym("b")), "minus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
         addBuiltin(env, "symbol", list2(sym("name"), sym("value")), "symbol_e");
+        addBuiltin(env, "symbols", list1(sym("namespace")), "symbols_e");
+        addBuiltin(env, "frame", list3(sym("symbols"), sym("variables"), sym("stack")), "frame_e");
         addBuiltin(env, "jbyte", list1(sym("byte")), "jbyte");
         addBuiltin(env, "jshort", list1(sym("short")), "jshort");
         addBuiltin(env, "jint", list1(sym("integer")), "jint");
@@ -548,23 +630,19 @@ public class ConsHeap {
         return env;
     }
 
-    private void prepareRoot() {
-        int frame = list1(sym("frame"));
-        int builtins = list2(sym("builtins"), buildEnv());
-        int symbols = list2(sym("symbols"), newCons());
-        this.root = list3(frame, builtins, symbols);
+    public void pushStack(int e) {
+        int frame = getCurrentFrame();
+        int stack = pairGet(frame, "stack");
+        push(stack, e);
     }
 
-    public void prepareFirstFrame(int start) {
-        int frame = newFrame(0);
-        int stack = pairGet(frame, "stack");
-        push(stack, start);
+    public void evalLoop() {
+        while (eval()) {}
     }
 
     public void evalExpression(int start) {
-        prepareFirstFrame(start);
-        eval();
-        while (eval()) {}
+        pushStack(start);
+        evalLoop();
     }
 
     public int getCurrentFrame() {
@@ -660,7 +738,7 @@ public class ConsHeap {
                 arg = cdr(arg);
             }
             push(stack, list1(sym("pop-frame")));
-            push(stack, body);
+            push(stack, copy(body));
             return true;
         }
         if (symbolEq(car, "HALT")) {
@@ -705,18 +783,18 @@ public class ConsHeap {
             return true;
         }
         else if (symbolEq(car, "while")) {
-            int test = cdr(e);
+            int test = cdr(car);
             int body = cdr(test);
-            push(stack, e); // push original while again
-            push(stack, list2(sym("then"), cdr(body)));
-            push(stack, test);
+            push(stack, copy(e)); // push original while again
+            push(stack, list2(sym("then"), copy(body)));
+            push(stack, copy(test));
             return true;
         }
         else if (symbolEq(car, "then")) {
             int test = pop(values);
             if (isTrue(test)) {
                 pop(stack); // remove cond
-                push(stack, cdr(car));
+                push(stack, copy(cdr(car)));
             }
             return true;
         }
@@ -743,6 +821,18 @@ public class ConsHeap {
             push(list, v2);
             push(list, v1);
             push(values, list);
+            return true;
+        }
+        else if (symbolEq(car, ".variables")) {
+            push(values, copy(vars));
+            return true;
+        }
+        else if (symbolEq(car, ".symbols")) {
+            push(values, copy(syms));
+            return true;
+        }
+        else if (symbolEq(car, ".frame")) {
+            push(values, copy(frame));
             return true;
         }
         // Poorly thought out macro system
@@ -789,6 +879,11 @@ public class ConsHeap {
     }
 
     public void dumpCons(int indent, int i) {
+        if (flag.get(i)) {
+            System.out.print("!");
+            return;
+        }
+        flag.set(i);
         int n = i;
         while (n > 0) {
             if (atom(n)) {
@@ -813,6 +908,7 @@ public class ConsHeap {
     }
 
     public void dump(String name, int i) {
+        flag.clear();
         System.out.print(name + ": ");
         dumpCons(0, i);
         System.out.println();
