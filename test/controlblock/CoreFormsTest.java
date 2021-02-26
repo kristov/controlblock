@@ -121,6 +121,7 @@ public class CoreFormsTest {
         assertEquals("2", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("3", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("4", heap.atomString(result));
+        System.out.println("unreaped cell percentage: " + heap.GCReport());
     }
 
     @Test
@@ -131,6 +132,7 @@ public class CoreFormsTest {
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("8.0", heap.atomString(result));
+        System.out.println("unreaped cell percentage: " + heap.GCReport());
     }
 
     @Test
