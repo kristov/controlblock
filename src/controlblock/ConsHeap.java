@@ -13,6 +13,7 @@ import java.lang.reflect.Method;
  */
 public class ConsHeap {
     private int root;
+    private int result;
     private final int heap_size;
     private final int[] heap;
     private final byte[] refcount;
@@ -437,6 +438,13 @@ public class ConsHeap {
         return 0;
     }
 
+    private int dump_e(int frame) {
+        int values = pairGet(frame, "values");
+        int i = pop(values);
+        dump("value", values);
+        return 0;
+    }
+
     private int symbols_e(int frame) {
         int values = pairGet(frame, "values");
         int namespace = pop(values);
@@ -617,6 +625,7 @@ public class ConsHeap {
         addBuiltin(env, "symbol", list2(sym("name"), sym("value")), "symbol_e");
         addBuiltin(env, "symbols", list1(sym("namespace")), "symbols_e");
         addBuiltin(env, "frame", list3(sym("symbols"), sym("variables"), sym("stack")), "frame_e");
+        addBuiltin(env, "dump", list1(sym("object")), "dump_e");
         addBuiltin(env, "jbyte", list1(sym("byte")), "jbyte");
         addBuiltin(env, "jshort", list1(sym("short")), "jshort");
         addBuiltin(env, "jint", list1(sym("integer")), "jint");
@@ -670,9 +679,7 @@ public class ConsHeap {
     }
 
     public int result() {
-        int frame = pairGet(this.root, "frame");
-        int values = pairGet(frame, "values");
-        return pop(values);
+        return this.result;
     }
 
     public int newFrame(int parent) {
@@ -698,11 +705,25 @@ public class ConsHeap {
         return (r > 0) ? r : symbol;
     }
 
+    private boolean popFrame(int frame) {
+        int values = pairGet(frame, "values");
+        int last_val = pop(values);
+        int last_frame = pairGet(frame, "parentfr");
+        if (last_frame == 0) {
+            this.result = last_val;
+            return false;
+        }
+        int last_stack = pairGet(last_frame, "stack");
+        push(last_stack, last_val);
+        pairSet(this.root, "frame", last_frame);
+        return true;
+    }
+
     public boolean eval() {
         int frame = pairGet(this.root, "frame");
         int stack = pairGet(frame, "stack");
         if (empty(stack)) {
-            return false;
+            return popFrame(frame);
         }
         int vars = pairGet(frame, "variables");
         int syms = pairGet(frame, "symbols");
@@ -737,7 +758,6 @@ public class ConsHeap {
                 pairSet(vars, atomString(arg), val);
                 arg = cdr(arg);
             }
-            push(stack, list1(sym("pop-frame")));
             push(stack, copy(body));
             return true;
         }
@@ -751,18 +771,6 @@ public class ConsHeap {
                 push(stack, copy(exp));
                 exp = cdr(exp);
             }
-            return true;
-        }
-        else if (symbolEq(car, "pop-frame")) {
-            int last_val = pop(values);
-            int last_frame = pairGet(frame, "parentfr");
-            if (last_frame == 0) {
-                System.out.println("last_frame was zero");
-                return true;
-            }
-            int last_stack = pairGet(last_frame, "stack");
-            push(last_stack, last_val);
-            pairSet(this.root, "frame", last_frame);
             return true;
         }
         else if (symbolEq(car, "quote")) {
@@ -796,31 +804,6 @@ public class ConsHeap {
                 pop(stack); // remove cond
                 push(stack, copy(cdr(car)));
             }
-            return true;
-        }
-        else if (symbolEq(car, ".dupv")) {
-            push(values, copy(car(values)));
-            return true;
-        }
-        else if (symbolEq(car, ".pushs")) {
-            push(stack, pop(values));
-            return true;
-        }
-        else if (symbolEq(car, ".cdr")) {
-            push(values, cdr(pop(values)));
-            return true;
-        }
-        else if (symbolEq(car, ".sym")) {
-            push(values, copy(cdr(car)));
-            return true;
-        }
-        else if (symbolEq(car, ".list2")) {
-            int v2 = pop(values);
-            int v1 = pop(values);
-            int list = newCons();
-            push(list, v2);
-            push(list, v1);
-            push(values, list);
             return true;
         }
         else if (symbolEq(car, ".variables")) {
