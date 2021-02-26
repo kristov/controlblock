@@ -702,7 +702,7 @@ public class ConsHeap {
         int frame = pairGet(this.root, "frame");
         int stack = pairGet(frame, "stack");
         if (empty(stack)) {
-            return false;
+            return reap(false);
         }
         int vars = pairGet(frame, "variables");
         int syms = pairGet(frame, "symbols");
@@ -716,7 +716,7 @@ public class ConsHeap {
         }
         if (atom(e)) {
             push(values, copy(e));
-            return true;
+            return reap(true);
         }
         int car = car(e);
         if (symbolEq(car, "lambda")) {
@@ -726,7 +726,7 @@ public class ConsHeap {
                 if (val > 0) {
                     push(stack, val);
                 }
-                return true;
+                return reap(true);
             }
             frame = newFrame(frame);
             stack = pairGet(frame, "stack");
@@ -739,11 +739,11 @@ public class ConsHeap {
             }
             push(stack, list1(sym("pop-frame")));
             push(stack, copy(body));
-            return true;
+            return reap(true);
         }
         if (symbolEq(car, "HALT")) {
             push(stack, e);
-            return false;
+            return reap(false);
         }
         if (symbolEq(car, "progn")) {
             int exp = car(reverse(cdr(car)));
@@ -751,36 +751,36 @@ public class ConsHeap {
                 push(stack, copy(exp));
                 exp = cdr(exp);
             }
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, "pop-frame")) {
             int last_val = pop(values);
             int last_frame = pairGet(frame, "parentfr");
             if (last_frame == 0) {
                 System.out.println("last_frame was zero");
-                return true;
+                return reap(true);
             }
             int last_stack = pairGet(last_frame, "stack");
             push(last_stack, last_val);
             pairSet(this.root, "frame", last_frame);
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, "quote")) {
             push(values, copy(cdr(car)));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, "cond")) {
             int cond = pop(e);
             int first = pop(e);
             if (first == 0) {
-                return true;
+                return reap(true);
             }
             int test = car(first);
             push(e, cond);
             push(stack, e);
             push(stack, list2(sym("then"), cdr(test)));
             push(stack, test);
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, "while")) {
             int test = cdr(car);
@@ -788,7 +788,7 @@ public class ConsHeap {
             push(stack, copy(e)); // push original while again
             push(stack, list2(sym("then"), copy(body)));
             push(stack, copy(test));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, "then")) {
             int test = pop(values);
@@ -796,23 +796,23 @@ public class ConsHeap {
                 pop(stack); // remove cond
                 push(stack, copy(cdr(car)));
             }
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".dupv")) {
             push(values, copy(car(values)));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".pushs")) {
             push(stack, pop(values));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".cdr")) {
             push(values, cdr(pop(values)));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".sym")) {
             push(values, copy(cdr(car)));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".list2")) {
             int v2 = pop(values);
@@ -821,11 +821,11 @@ public class ConsHeap {
             push(list, v2);
             push(list, v1);
             push(values, list);
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".variables")) {
             push(values, copy(vars));
-            return true;
+            return reap(true);
         }
         else if (symbolEq(car, ".symbols")) {
             push(values, copy(syms));
@@ -833,20 +833,53 @@ public class ConsHeap {
         }
         else if (symbolEq(car, ".frame")) {
             push(values, copy(frame));
-            return true;
-        }
-        // Poorly thought out macro system
-        int macro = pairGet(pairGet(this.root, "macros"), atomString(car));
-        if (macro > 0) {
-            push(stack, macro);
-            return true;
+            return reap(true);
         }
         e = car(e);
         while (e != 0) {
             push(stack, copy(e)); // possibly needs to be a deep copy
             e = cdr(e);
         }
-        return true;
+        return reap(true);
+    }
+
+    public void markCons(int i) {
+        flag.set(i);
+        int n = i;
+        while (n > 0) {
+            if (atom(n)) {
+                flag.set(n);
+            }
+            else {
+                markCons(heap[n * 2]);
+            }
+            n = heap[(n * 2) + 1];
+        }
+    }
+
+    public boolean reap(boolean ret) {
+/*
+        flag.clear();
+        markCons(this.root);
+        int unmarked = 0;
+        int inuse = 0;
+        for (int i = 0; i < heap_size; i++) {
+            if ((heap[i * 2] != 0) || (heap[(i * 2) + 1] != 0)) {
+                inuse++;
+            }
+            if (flag.get(i)) {
+                continue;
+            }
+            unmarked++;
+        }
+        int extra = inuse - unmarked;
+        if (extra == 0) {
+            return ret;
+        }
+        float pct = ((float)extra / (float)unmarked) * 100;
+        System.out.println("unmarked: " + unmarked + " inuse: " + inuse + " GC pct: " + pct);
+*/
+        return ret;
     }
 
     public void dumpConsSys(int indent, int i) {

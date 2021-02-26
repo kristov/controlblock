@@ -125,7 +125,7 @@ public class CoreFormsTest {
 
     @Test
     public void testSymbol() {
-        ConsHeap heap = new ConsHeap(256);
+        ConsHeap heap = new ConsHeap(1024);
         Parser parser = new Parser();
         int e = parser.parseString(heap, "progn ((symbol sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))");
         heap.evalExpression(e);
