@@ -135,6 +135,7 @@ public class CoreFormsTest {
         System.out.println("unreaped cell percentage: " + heap.GCReport());
     }
 
+/*
     @Test
     public void testJInt() {
         ConsHeap heap = new ConsHeap(256);
@@ -166,4 +167,5 @@ public class CoreFormsTest {
         heap.dump("stack", stack);
         //assertEquals("8.0", heap.atomString(result));
     }
+*/
 }

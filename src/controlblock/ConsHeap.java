@@ -626,6 +626,7 @@ public class ConsHeap {
         addBuiltin(env, "symbols", list1(sym("namespace")), "symbols_e");
         addBuiltin(env, "frame", list3(sym("symbols"), sym("variables"), sym("stack")), "frame_e");
         addBuiltin(env, "dump", list1(sym("object")), "dump_e");
+/*
         addBuiltin(env, "jbyte", list1(sym("byte")), "jbyte");
         addBuiltin(env, "jshort", list1(sym("short")), "jshort");
         addBuiltin(env, "jint", list1(sym("integer")), "jint");
@@ -636,6 +637,7 @@ public class ConsHeap {
         addBuiltin(env, "jboolean", list1(sym("boolean")), "jboolean");
         addBuiltin(env, "jnew", list3(sym("method"), sym("argc"), sym("args")), "jnew_e");
         addBuiltin(env, "jmethod", list3(sym("method"), sym("argc"), sym("args")), "jmethod_e");
+*/
         return env;
     }
 
