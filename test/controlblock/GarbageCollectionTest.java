@@ -8,6 +8,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class GarbageCollectionTest {
+/*
     @Test
     public void testNewConsBasicRef() {
         ConsHeap heap = new ConsHeap(255);
@@ -18,7 +19,7 @@ public class GarbageCollectionTest {
         assertEquals(1, heap.refCount(list1));
         assertEquals(2, heap.refCount(cons1));
         assertEquals(2, heap.refCount(cons2));
-        heap.deref(list1);
+        heap.reap(list1);
         assertEquals(0, heap.refCount(list1));
         assertEquals(0, heap.refCount(cons1));
         assertEquals(0, heap.refCount(cons2));
@@ -39,7 +40,7 @@ public class GarbageCollectionTest {
         assertEquals(2, heap.refCount(list1));
         assertEquals(2, heap.refCount(cons1));
         assertEquals(2, heap.refCount(cons2));
-        heap.deref(list2);
+        heap.reap(list2);
         assertEquals(0, heap.refCount(list2));
         assertEquals(0, heap.refCount(list1));
         assertEquals(0, heap.refCount(cons1));
@@ -61,8 +62,26 @@ public class GarbageCollectionTest {
         assertEquals(2, heap.refCount(cons2));
         list1 = heap.pop(list2);
         assertEquals(1, heap.refCount(list1));
-        heap.deref(list1);
+        heap.reap(list1);
         assertEquals(0, heap.refCount(list1));
         assertEquals(0, heap.refCount(cons2));
+    }
+*/
+    
+    @Test
+    public void testBasicEval() {
+        ConsHeap heap = new ConsHeap(256);
+        Parser parser = new Parser();
+        int preUsed = heap.nrUsedCons();
+        int preMarked = heap.nrMarkedCons();
+        System.out.println("used: " + preUsed + " marked: " + preMarked);
+        int e = parser.parseString(heap, "quote (A B)");
+        heap.evalExpression(e);
+        int result = heap.result();
+        heap.dump("result", result);
+        System.out.println("result: " + result);
+        int postUsed = heap.nrUsedCons();
+        int postMarked = heap.nrMarkedCons();
+        System.out.println("used: " + postUsed + " marked: " + postMarked);
     }
 }

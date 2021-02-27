@@ -201,7 +201,7 @@ public class ConsHeap {
                 this.refcount[v]++;
                 this.heap[(pair * 2) + 1] = v;
                 if (cdr_pair != 0) {
-                    deref(cdr_pair);
+                    reap(cdr_pair);
                 }
                 return v;
             }
@@ -214,6 +214,7 @@ public class ConsHeap {
     public void append(int a, int b) {
         if (heap[a * 2] == 0) {
             heap[a * 2] = b;
+            ref(b);
             return;
         }
         a = heap[a * 2];
@@ -221,6 +222,7 @@ public class ConsHeap {
             a = heap[(a * 2) + 1];
         }
         heap[(a * 2) + 1] = b;
+        ref(b);
     }
 
     public void push(int list, int item) {
@@ -228,12 +230,10 @@ public class ConsHeap {
             return;
         }
         if (this.heap[list * 2] != 0) {
-            // list is not the empty list so swap item in as the first element
             this.heap[(item * 2) + 1] = this.heap[list * 2];
         }
-        // point the car of b to a
         this.heap[list * 2] = item;
-        this.refcount[item]++;
+        ref(item);
         return;
     }
 
@@ -278,6 +278,7 @@ public class ConsHeap {
         int strIdx = addObject(symbol);
         int i = newCons();
         heap[(i * 2)] = strIdx;
+        ref(strIdx);
         return i;
     }
 
@@ -290,11 +291,11 @@ public class ConsHeap {
 
     public int copy(int i) {
         int n = newCons();
+        dump("copy()", i);
+        System.out.println("copy(): " + i + " to " + n);
         int dst = car(i);
         heap[n * 2] = dst;
-        if (dst < 0) {
-            refObject(dst);
-        }
+        ref(dst);
         return n;
     }
 
@@ -652,7 +653,9 @@ public class ConsHeap {
     }
 
     public void evalExpression(int start) {
+        System.out.println("pushing: " + start);
         pushStack(start);
+        dumpSys(start);
         evalLoop();
     }
 
@@ -738,7 +741,9 @@ public class ConsHeap {
             e = resolveSymbol(vars, e);
         }
         if (atom(e)) {
+            System.out.println("copying values push");
             push(values, copy(e));
+            reap(e);
             return true;
         }
         int car = car(e);
@@ -777,10 +782,11 @@ public class ConsHeap {
         }
         else if (symbolEq(car, "quote")) {
             push(values, copy(cdr(car)));
+            reap(e);
             return true;
         }
         else if (symbolEq(car, "cond")) {
-            int cond = pop(e);
+            int cond = pop(e); // wrong?
             int first = pop(e);
             if (first == 0) {
                 return true;
@@ -820,11 +826,13 @@ public class ConsHeap {
             push(values, copy(frame));
             return true;
         }
-        e = car(e);
-        while (e != 0) {
-            push(stack, copy(e)); // possibly needs to be a deep copy
-            e = cdr(e);
+        int i = car(e);
+        while (i != 0) {
+            System.out.println("copying from end of eval");
+            push(stack, copy(i));
+            i = cdr(i);
         }
+        reap(e);
         return true;
     }
 
@@ -840,6 +848,28 @@ public class ConsHeap {
             }
             n = heap[(n * 2) + 1];
         }
+    }
+
+    public int nrUsedCons() {
+        int inuse = 0;
+        for (int i = 0; i < heap_size; i++) {
+            if ((heap[i * 2] != 0) || (heap[(i * 2) + 1] != 0)) {
+                inuse++;
+            }
+        }
+        return inuse;
+    }
+
+    public int nrMarkedCons() {
+        flag.clear();
+        markCons(this.root);
+        int marked = 0;
+        for (int i = 0; i < heap_size; i++) {
+            if (flag.get(i)) {
+                marked++;
+            }
+        }
+        return marked;
     }
 
     public float GCReport() {
@@ -984,12 +1014,19 @@ public class ConsHeap {
         return this.refcount[i];
     }
 
-    private void refObject(int id) {
-        id = 0 - id;
-        objrefcount[id]++;
+    public int refObjectCount(int i) {
+        return this.objrefcount[0 - i];
     }
 
-    private void derefObject(int id) {
+    private void ref(int id) {
+        if (id < 0) {
+            objrefcount[0 - id]++;
+            return;
+        }
+        refcount[id]++;
+    }
+
+    private void reapObject(int id) {
         id = 0 - id;
         objrefcount[id]--;
         if (objrefcount[id] <= 1) {
@@ -998,20 +1035,22 @@ public class ConsHeap {
         }
     }
 
-    void deref(int i) {
+    public void reap(int i) {
         while (i > 0) {
             this.refcount[i]--;
             if (this.refcount[i] > 1) {
                 return;
             }
+            dumpSys(i);
             int j = this.heap[(i * 2) + 1];
             this.refcount[i] = 0;
             if (this.heap[i * 2] < 0) {
-                derefObject(this.heap[i * 2]);
+                reapObject(this.heap[i * 2]);
             }
             if (this.heap[i * 2] > 0) {
-                deref(this.heap[i * 2]);
+                reap(this.heap[i * 2]);
             }
+            System.out.println("reap(): " + i);
             this.heap[i * 2] = 0;
             this.heap[(i * 2) + 1] = 0;
             i = j;
