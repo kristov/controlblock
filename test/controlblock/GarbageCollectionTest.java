@@ -75,6 +75,25 @@ public class GarbageCollectionTest {
         int preUsed = heap.nrUsedCons();
         int preMarked = heap.nrMarkedCons();
         System.out.println("used: " + preUsed + " marked: " + preMarked);
+        int e = parser.parseString(heap, "A");
+        heap.evalExpression(e);
+        int result = heap.result();
+        heap.dump("result", result);
+        System.out.println("result: " + result);
+        int postUsed = heap.nrUsedCons();
+        int postMarked = heap.nrMarkedCons();
+        System.out.println("used: " + postUsed + " marked: " + postMarked);
+        //heap.printOrphaned();
+    }
+
+/*
+    @Test
+    public void testQuotedList() {
+        ConsHeap heap = new ConsHeap(256);
+        Parser parser = new Parser();
+        int preUsed = heap.nrUsedCons();
+        int preMarked = heap.nrMarkedCons();
+        System.out.println("used: " + preUsed + " marked: " + preMarked);
         int e = parser.parseString(heap, "quote (A B)");
         heap.evalExpression(e);
         int result = heap.result();
@@ -84,4 +103,5 @@ public class GarbageCollectionTest {
         int postMarked = heap.nrMarkedCons();
         System.out.println("used: " + postUsed + " marked: " + postMarked);
     }
+*/
 }

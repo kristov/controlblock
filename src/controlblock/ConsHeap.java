@@ -39,6 +39,8 @@ public class ConsHeap {
         int builtins = list2(sym("builtins"), buildEnv());
         int symbols = list2(sym("symbols"), newCons());
         this.root = list3(frame, builtins, symbols);
+        ref(this.root);
+        System.out.println("pre-frame used: " + nrUsedCons());
         newFrame(0);
     }
 
@@ -52,6 +54,16 @@ public class ConsHeap {
 
     public int cdr(int i) {
         return heap[(i * 2) + 1];
+    }
+
+    public void setcar(int i, int v) {
+        this.heap[i * 2] = v;
+        ref(v);
+    }
+
+    public void setcdr(int i, int v) {
+        this.heap[(i * 2) + 1] = v;
+        ref(v);
     }
 
     public int cons(int car, int cdr) {
@@ -69,55 +81,41 @@ public class ConsHeap {
 
     public int list1(int a) {
         int p = newCons();
-        heap[p * 2] = a;
+        setcar(p, a);
         return p;
     }
 
     public int list2(int a, int b) {
         int p = newCons();
-        heap[p * 2] = a;
-        heap[(a * 2) + 1] = b;
-        refcount[a]++;
-        refcount[b]++;
+        setcar(p, a);
+        setcdr(a, b);
         return p;
     }
 
     public int list3(int a, int b, int c) {
         int p = newCons();
-        heap[p * 2] = a;
-        heap[(a * 2) + 1] = b;
-        heap[(b * 2) + 1] = c;
-        refcount[a]++;
-        refcount[b]++;
-        refcount[c]++;
+        setcar(p, a);
+        setcdr(a, b);
+        setcdr(b, c);
         return p;
     }
 
     public int list4(int a, int b, int c, int d) {
         int p = newCons();
-        heap[p * 2] = a;
-        heap[(a * 2) + 1] = b;
-        heap[(b * 2) + 1] = c;
-        heap[(c * 2) + 1] = d;
-        refcount[a]++;
-        refcount[b]++;
-        refcount[c]++;
-        refcount[d]++;
+        setcar(p, a);
+        setcdr(a, b);
+        setcdr(b, c);
+        setcdr(c, d);
         return p;
     }
 
     public int list5(int a, int b, int c, int d, int e) {
         int p = newCons();
-        heap[p * 2] = a;
-        heap[(a * 2) + 1] = b;
-        heap[(b * 2) + 1] = c;
-        heap[(c * 2) + 1] = d;
-        heap[(d * 2) + 1] = e;
-        refcount[a]++;
-        refcount[b]++;
-        refcount[c]++;
-        refcount[d]++;
-        refcount[e]++;
+        setcar(p, a);
+        setcdr(a, b);
+        setcdr(b, c);
+        setcdr(c, d);
+        setcdr(d, e);
         return p;
     }
 
@@ -144,10 +142,10 @@ public class ConsHeap {
     }
 
     public int appendCons(int cons, int item) {
-        while (this.heap[(cons * 2) + 1] > 0) {
-            cons = this.heap[(cons * 2) + 1];
+        while (cdr(cons) > 0) {
+            cons = cdr(cons);
         }
-        this.heap[(cons * 2) + 1] = item;
+        setcdr(cons, item);
         return cons;
     }
 
@@ -156,14 +154,13 @@ public class ConsHeap {
             return 0;
         }
         if (empty(list)) {
-            this.heap[list * 2] = item;
+            setcar(list, item);
             return item;
         }
-        int head = this.heap[list * 2];
+        int head = car(list);
         return appendCons(head, item);
     }
 
-    // a is a list of k/v pairs
     public int pairGet(int a, String key) {
         if (a == 0) {
             return 0;
@@ -171,13 +168,13 @@ public class ConsHeap {
         if (atom(a)) {
             return 0;
         }
-        int head = car(a);
-        while (head > 0) {
-            int pair = car(head);
+        int i = car(a);
+        while (i > 0) {
+            int pair = car(i);
             if (atomString(pair).equals(key)) {
-                return this.heap[(pair * 2) + 1];
+                return cdr(pair);
             }
-            head = this.heap[(head * 2) + 1];
+            i = cdr(i);
         }
         return 0;
     }
@@ -189,52 +186,52 @@ public class ConsHeap {
         if (atom(a)) {
             return 0;
         }
-        int head = car(a);
-        if (head == 0) {
-            this.heap[a * 2] = list2(sym(key), v);
+        if (empty(a)) {
+            int pair = list2(sym(key), v);
+            setcar(a, pair);
             return v;
         }
-        while (this.heap[(head * 2) + 1] > 0) {
-            int pair = car(head);
+        int i = car(a);
+        int last = i;
+        while (i > 0) {
+            int pair = car(i);
             if (atomString(pair).equals(key)) {
                 int cdr_pair = cdr(pair);
-                this.refcount[v]++;
-                this.heap[(pair * 2) + 1] = v;
+                setcdr(pair, v);
                 if (cdr_pair != 0) {
                     reap(cdr_pair);
                 }
                 return v;
             }
-            head = this.heap[(head * 2) + 1];
+            last = i;
+            i = cdr(i);
         }
-        this.heap[(head * 2) + 1] = list2(sym(key), v);
+        int pair = list2(sym(key), v);
+        setcdr(last, pair);
         return v;
     }
 
     public void append(int a, int b) {
-        if (heap[a * 2] == 0) {
-            heap[a * 2] = b;
-            ref(b);
+        if (car(a) == 0) {
+            setcar(a, b);
             return;
         }
-        a = heap[a * 2];
-        while (heap[(a * 2) + 1] > 0) {
-            a = heap[(a * 2) + 1];
+        a = car(a);
+        while (cdr(a) > 0) {
+            a = cdr(a);
         }
-        heap[(a * 2) + 1] = b;
-        ref(b);
+        setcdr(a, b);
     }
 
     public void push(int list, int item) {
         if (atom(list)) {
             return;
         }
-        if (this.heap[list * 2] != 0) {
+        if (car(list) != 0) {
+            // do not change to setcdr(item, car(list))
             this.heap[(item * 2) + 1] = this.heap[list * 2];
         }
-        this.heap[list * 2] = item;
-        ref(item);
-        return;
+        setcar(list, item);
     }
 
     public int pop(int i) {
@@ -252,16 +249,16 @@ public class ConsHeap {
         int prev = 0;
         while (i > 0) {
             int n = copy(i);
-            heap[(n * 2) + 1] = prev;
+            setcdr(n, prev);
             prev = n;
-            i = heap[(i * 2) + 1];
+            i = cdr(i);
         }
-        heap[rev * 2] = prev;
+        setcar(rev, prev);
         return rev;
     }
 
     public boolean empty(int i) {
-        return heap[i * 2] == 0;
+        return car(i) == 0;
     }
 
     public int length(int i) {
@@ -275,17 +272,16 @@ public class ConsHeap {
     }
 
     public int sym(String symbol) {
-        int strIdx = addObject(symbol);
+        int idx = addObject(symbol);
         int i = newCons();
-        heap[(i * 2)] = strIdx;
-        ref(strIdx);
+        setcar(i, idx);
         return i;
     }
 
     public int obj(Object obj) {
         int idx = addObject(obj);
         int i = newCons();
-        heap[(i * 2)] = idx;
+        setcar(i, idx);
         return i;
     }
 
@@ -294,8 +290,7 @@ public class ConsHeap {
         dump("copy()", i);
         System.out.println("copy(): " + i + " to " + n);
         int dst = car(i);
-        heap[n * 2] = dst;
-        ref(dst);
+        setcar(n, dst);
         return n;
     }
 
@@ -716,11 +711,13 @@ public class ConsHeap {
         int last_frame = pairGet(frame, "parentfr");
         if (last_frame == 0) {
             this.result = last_val;
+            reap(frame);
             return false;
         }
         int last_stack = pairGet(last_frame, "stack");
         push(last_stack, last_val);
         pairSet(this.root, "frame", last_frame);
+        reap(frame);
         return true;
     }
 
@@ -741,7 +738,6 @@ public class ConsHeap {
             e = resolveSymbol(vars, e);
         }
         if (atom(e)) {
-            System.out.println("copying values push");
             push(values, copy(e));
             reap(e);
             return true;
@@ -840,20 +836,17 @@ public class ConsHeap {
         flag.set(i);
         int n = i;
         while (n > 0) {
-            if (atom(n)) {
-                flag.set(n);
+            if (!atom(n)) {
+                markCons(car(n));
             }
-            else {
-                markCons(heap[n * 2]);
-            }
-            n = heap[(n * 2) + 1];
+            n = cdr(n);
         }
     }
 
     public int nrUsedCons() {
         int inuse = 0;
-        for (int i = 0; i < heap_size; i++) {
-            if ((heap[i * 2] != 0) || (heap[(i * 2) + 1] != 0)) {
+        for (int i = 1; i < heap_size; i++) {
+            if ((car(i) != 0) || (cdr(i) != 0)) {
                 inuse++;
             }
         }
@@ -864,12 +857,22 @@ public class ConsHeap {
         flag.clear();
         markCons(this.root);
         int marked = 0;
-        for (int i = 0; i < heap_size; i++) {
+        for (int i = 1; i < heap_size; i++) {
             if (flag.get(i)) {
                 marked++;
             }
         }
         return marked;
+    }
+
+    public void printOrphaned() {
+        flag.clear();
+        markCons(this.root);
+        for (int i = 1; i < heap_size; i++) {
+            if (((car(i) != 0) || (cdr(i) != 0)) && !flag.get(i)) {
+                dump("" + i, i);
+            }
+        }
     }
 
     public float GCReport() {
@@ -1041,7 +1044,6 @@ public class ConsHeap {
             if (this.refcount[i] > 1) {
                 return;
             }
-            dumpSys(i);
             int j = this.heap[(i * 2) + 1];
             this.refcount[i] = 0;
             if (this.heap[i * 2] < 0) {
@@ -1050,7 +1052,6 @@ public class ConsHeap {
             if (this.heap[i * 2] > 0) {
                 reap(this.heap[i * 2]);
             }
-            System.out.println("reap(): " + i);
             this.heap[i * 2] = 0;
             this.heap[(i * 2) + 1] = 0;
             i = j;

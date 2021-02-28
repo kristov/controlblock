@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 public class ConsPairTest {
     @Test
     public void testAppendCons() {
-        ConsHeap heap = new ConsHeap(255);
+        ConsHeap heap = new ConsHeap(256);
         int cons1 = heap.newCons();
         int cons2 = heap.newCons();
         int res = heap.appendCons(cons1, cons2);
@@ -22,7 +22,7 @@ public class ConsPairTest {
 
     @Test
     public void testNewPair() {
-        ConsHeap heap = new ConsHeap(255);
+        ConsHeap heap = new ConsHeap(256);
         int cons = heap.newCons();
         int val1 = heap.sym("VAL1");
         heap.pairSet(cons, "key1", val1);
@@ -38,7 +38,7 @@ public class ConsPairTest {
 
     @Test
     public void testNewPairGet() {
-        ConsHeap heap = new ConsHeap(255);
+        ConsHeap heap = new ConsHeap(256);
         int cons = heap.newCons();
         int val1 = heap.sym("VAL1");
         heap.pairSet(cons, "key1", val1);
