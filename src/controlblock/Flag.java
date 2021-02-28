@@ -18,7 +18,7 @@ public class Flag {
     public boolean get(int i) {
         int idx = i / 32;
         int off = 1 << (i % 32);
-        return (flag[idx] & off) > 0;
+        return (flag[idx] & off) != 0;
     }
 
     public void clear() {
