@@ -13,7 +13,6 @@ import java.lang.reflect.Method;
  */
 public class ConsHeap {
     private int root;
-    private int result;
     private final int heap_size;
     private final int[] heap;
     private final byte[] refcount;
@@ -38,9 +37,9 @@ public class ConsHeap {
         int frame = list1(sym("frame"));
         int builtins = list2(sym("builtins"), buildEnv());
         int symbols = list2(sym("symbols"), newCons());
-        this.root = list3(frame, builtins, symbols);
+        int result = list2(sym("result"), newCons());
+        this.root = list4(frame, builtins, symbols, result);
         ref(this.root);
-        System.out.println("pre-frame used: " + nrUsedCons());
         newFrame(0);
     }
 
@@ -287,8 +286,6 @@ public class ConsHeap {
 
     public int copy(int i) {
         int n = newCons();
-        dump("copy()", i);
-        System.out.println("copy(): " + i + " to " + n);
         int dst = car(i);
         setcar(n, dst);
         return n;
@@ -648,9 +645,7 @@ public class ConsHeap {
     }
 
     public void evalExpression(int start) {
-        System.out.println("pushing: " + start);
         pushStack(start);
-        dumpSys(start);
         evalLoop();
     }
 
@@ -679,7 +674,7 @@ public class ConsHeap {
     }
 
     public int result() {
-        return this.result;
+        return pairGet(this.root, "result");
     }
 
     public int newFrame(int parent) {
@@ -707,15 +702,14 @@ public class ConsHeap {
 
     private boolean popFrame(int frame) {
         int values = pairGet(frame, "values");
-        int last_val = pop(values);
+        int result = pop(values);
         int last_frame = pairGet(frame, "parentfr");
         if (last_frame == 0) {
-            this.result = last_val;
-            reap(frame);
+            pairSet(this.root, "result", result);
             return false;
         }
         int last_stack = pairGet(last_frame, "stack");
-        push(last_stack, last_val);
+        push(last_stack, result);
         pairSet(this.root, "frame", last_frame);
         reap(frame);
         return true;
@@ -824,7 +818,6 @@ public class ConsHeap {
         }
         int i = car(e);
         while (i != 0) {
-            System.out.println("copying from end of eval");
             push(stack, copy(i));
             i = cdr(i);
         }
@@ -833,20 +826,20 @@ public class ConsHeap {
     }
 
     public void markCons(int i) {
-        flag.set(i);
-        int n = i;
-        while (n > 0) {
-            if (!atom(n)) {
-                markCons(car(n));
+        while (i > 0) {
+            flag.set(i);
+            if (!atom(i)) {
+                markCons(car(i));
             }
-            n = cdr(n);
+            i = cdr(i);
         }
     }
 
     public int nrUsedCons() {
         int inuse = 0;
         for (int i = 1; i < heap_size; i++) {
-            if ((car(i) != 0) || (cdr(i) != 0)) {
+            //if ((car(i) != 0) || (cdr(i) != 0)) {
+            if (refcount[i] > 0) {
                 inuse++;
             }
         }
@@ -863,6 +856,16 @@ public class ConsHeap {
             }
         }
         return marked;
+    }
+
+    public void printOrphanedMagic() {
+        flag.clear();
+        markCons(this.root);
+        for (int i = 1; i < heap_size; i++) {
+            if ((refcount[i] <= 0) && flag.get(i)) {
+                dumpSys(i);
+            }
+        }
     }
 
     public void printOrphaned() {

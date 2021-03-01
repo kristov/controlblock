@@ -8,7 +8,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class GarbageCollectionTest {
-/*
+    private void checkForLeaks(ConsHeap heap) {
+        int used = heap.nrUsedCons();
+        int marked = heap.nrMarkedCons();
+        assertEquals(used, marked);
+    }
+
     @Test
     public void testNewConsBasicRef() {
         ConsHeap heap = new ConsHeap(255);
@@ -26,7 +31,7 @@ public class GarbageCollectionTest {
         int cons1fr = heap.newCons();
         assertEquals(cons1, cons1fr);
     }
-    
+
     @Test
     public void testNewConsSublistDeref() {
         ConsHeap heap = new ConsHeap(255);
@@ -46,7 +51,7 @@ public class GarbageCollectionTest {
         assertEquals(0, heap.refCount(cons1));
         assertEquals(0, heap.refCount(cons2));
     }
-    
+
     @Test
     public void testNewConsSublistPop() {
         ConsHeap heap = new ConsHeap(255);
@@ -66,42 +71,22 @@ public class GarbageCollectionTest {
         assertEquals(0, heap.refCount(list1));
         assertEquals(0, heap.refCount(cons2));
     }
-*/
-    
+
     @Test
     public void testBasicEval() {
         ConsHeap heap = new ConsHeap(256);
         Parser parser = new Parser();
-        int preUsed = heap.nrUsedCons();
-        int preMarked = heap.nrMarkedCons();
-        System.out.println("used: " + preUsed + " marked: " + preMarked);
         int e = parser.parseString(heap, "A");
         heap.evalExpression(e);
-        int result = heap.result();
-        heap.dump("result", result);
-        System.out.println("result: " + result);
-        int postUsed = heap.nrUsedCons();
-        int postMarked = heap.nrMarkedCons();
-        System.out.println("used: " + postUsed + " marked: " + postMarked);
-        //heap.printOrphaned();
+        checkForLeaks(heap);
     }
 
-/*
     @Test
     public void testQuotedList() {
         ConsHeap heap = new ConsHeap(256);
         Parser parser = new Parser();
-        int preUsed = heap.nrUsedCons();
-        int preMarked = heap.nrMarkedCons();
-        System.out.println("used: " + preUsed + " marked: " + preMarked);
         int e = parser.parseString(heap, "quote (A B)");
         heap.evalExpression(e);
-        int result = heap.result();
-        heap.dump("result", result);
-        System.out.println("result: " + result);
-        int postUsed = heap.nrUsedCons();
-        int postMarked = heap.nrMarkedCons();
-        System.out.println("used: " + postUsed + " marked: " + postMarked);
+        checkForLeaks(heap);
     }
-*/
 }
