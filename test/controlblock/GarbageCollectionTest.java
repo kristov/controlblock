@@ -10,8 +10,8 @@ import static org.junit.Assert.*;
 public class GarbageCollectionTest {
     private void checkForLeaks(ConsHeap heap) {
         int used = heap.nrUsedCons();
-        int marked = heap.nrMarkedCons();
-        assertEquals(used, marked);
+        int reachable = heap.nrReachableCons();
+        assertEquals(reachable, used);
     }
 
     @Test
@@ -87,6 +87,16 @@ public class GarbageCollectionTest {
         Parser parser = new Parser();
         int e = parser.parseString(heap, "quote (A B)");
         heap.evalExpression(e);
+        checkForLeaks(heap);
+    }
+
+    @Test
+    public void testProgn() {
+        ConsHeap heap = new ConsHeap(256);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "(lambda (d e) (+ d e)) 2 3");
+        heap.evalExpression(e);
+        heap.printOrphaned();
         checkForLeaks(heap);
     }
 }

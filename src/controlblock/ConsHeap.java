@@ -452,10 +452,12 @@ public class ConsHeap {
 
     private int leta_e(int frame) {
         int values = pairGet(frame, "values");
-        String name = atomString(pop(values));
+        int name = pop(values);
         int value = pop(values);
         int vars = pairGet(frame, "variables");
-        int ret = pairSet(vars, name, value);
+        int ret = pairSet(vars, atomString(name), copy(value));
+        reap(value);
+        reap(name);
         return quote(ret);
     }
 
@@ -697,7 +699,12 @@ public class ConsHeap {
             return symbol;
         }
         int r = pairGet(table, atomString(symbol));
-        return (r > 0) ? r : symbol;
+        if (r > 0) {
+            reap(symbol);
+            ref(r);
+            return r;
+        }
+        return symbol;
     }
 
     private boolean popFrame(int frame) {
@@ -744,6 +751,7 @@ public class ConsHeap {
                 if (val > 0) {
                     push(stack, val);
                 }
+                reap(e);
                 return true;
             }
             frame = newFrame(frame);
@@ -753,9 +761,11 @@ public class ConsHeap {
             while (arg != 0) {
                 int val = pop(values);
                 pairSet(vars, atomString(arg), val);
+                reap(val);
                 arg = cdr(arg);
             }
             push(stack, copy(body));
+            reap(e);
             return true;
         }
         if (symbolEq(car, "HALT")) {
@@ -846,7 +856,7 @@ public class ConsHeap {
         return inuse;
     }
 
-    public int nrMarkedCons() {
+    public int nrReachableCons() {
         flag.clear();
         markCons(this.root);
         int marked = 0;
@@ -873,7 +883,7 @@ public class ConsHeap {
         markCons(this.root);
         for (int i = 1; i < heap_size; i++) {
             if (((car(i) != 0) || (cdr(i) != 0)) && !flag.get(i)) {
-                dump("" + i, i);
+                dumpSys(i);
             }
         }
     }
@@ -900,27 +910,34 @@ public class ConsHeap {
         return pct;
     }
 
+    public void dumpIndent(int indent) {
+        for (int i = 0; i < indent; i++) {
+            System.out.print("  ");
+        }
+    }
+
+    public void dumpConsCell(int indent, int i) {
+        if (atom(i)) {
+            System.out.print(i + "[\"" + atomString(i) + "\":" + cdr(i) + ":R" + refcount[i] + "]");
+            return;
+        }
+        System.out.print(i + "[L" + length(i) + ":" + cdr(i) + ":R" + refcount[i] + "](\n");
+        dumpIndent(indent + 1);
+        dumpConsSys(indent + 1, car(i));
+        dumpIndent(indent);
+        System.out.print(")");
+    }
+
     public void dumpConsSys(int indent, int i) {
-        int n = i;
-        while (n > 0) {
-            if (atom(n)) {
-                System.out.print(n + "[\"" + atomString(n) + "\":" + heap[(n * 2) + 1] + ":" + refcount[n] + "]");
-                if (heap[(n * 2) + 1] > 0) {
-                    System.out.print(" ");
-                }
-            }
-            else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
-                System.out.print(n + ":" + refcount[n] + "()");
+        while (i > 0) {
+            dumpConsCell(indent, i);
+            if (cdr(i) > 0) {
+                System.out.print(".");
             }
             else {
-                System.out.print(n + ":" + refcount[n] + "(");
-                dumpConsSys(indent + 2, heap[n * 2]);
-                System.out.print(")");
-                if (heap[(n * 2) + 1] > 0) {
-                    System.out.print(" ");
-                }
+                System.out.print("\n");
             }
-            n = heap[(n * 2) + 1];
+            i = cdr(i);
         }
     }
 
