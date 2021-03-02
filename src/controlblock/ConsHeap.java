@@ -370,9 +370,11 @@ public class ConsHeap {
 
     private int plus_e(int frame) {
         int values = pairGet(frame, "values");
-        String a = atomString(pop(values));
-        String b = atomString(pop(values));
-        Float r = Float.valueOf(a) + Float.valueOf(b);
+        int a = pop(values);
+        int b = pop(values);
+        Float r = Float.valueOf(atomString(a)) + Float.valueOf(atomString(b));
+        reap(a);
+        reap(b);
         return sym(r.toString());
     }
 
@@ -761,7 +763,6 @@ public class ConsHeap {
             while (arg != 0) {
                 int val = pop(values);
                 pairSet(vars, atomString(arg), val);
-                reap(val);
                 arg = cdr(arg);
             }
             push(stack, copy(body));
