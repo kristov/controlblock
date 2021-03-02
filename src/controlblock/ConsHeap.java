@@ -774,11 +774,14 @@ public class ConsHeap {
             return false;
         }
         if (symbolEq(car, "progn")) {
-            int exp = car(reverse(cdr(car)));
-            while (exp != 0) {
-                push(stack, copy(exp));
-                exp = cdr(exp);
+            int rev = reverse(cdr(car));
+            int i = car(rev);
+            while (i != 0) {
+                push(stack, copy(i));
+                i = cdr(i);
             }
+            reap(rev);
+            reap(e);
             return true;
         }
         else if (symbolEq(car, "quote")) {
