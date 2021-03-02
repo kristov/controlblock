@@ -380,29 +380,37 @@ public class ConsHeap {
 
     private int minus_e(int frame) {
         int values = pairGet(frame, "values");
-        String a = atomString(pop(values));
-        String b = atomString(pop(values));
-        Float r = Float.valueOf(a) - Float.valueOf(b);
+        int a = pop(values);
+        int b = pop(values);
+        Float r = Float.valueOf(atomString(a)) - Float.valueOf(atomString(b));
+        reap(a);
+        reap(b);
         return sym(r.toString());
     }
 
     private int greaterthan_e(int frame) {
         int values = pairGet(frame, "values");
-        String a = atomString(pop(values));
-        String b = atomString(pop(values));
-        Float r = Float.valueOf(a) + Float.valueOf(b);
-        if (Float.valueOf(a) > Float.valueOf(b)) {
+        int a = pop(values);
+        int b = pop(values);
+        int ret = 0;
+        if (Float.valueOf(atomString(a)) > Float.valueOf(atomString(b))) {
+            reap(a);
+            reap(b);
             return sym("true");
         }
+        reap(a);
+        reap(b);
         return quote(newCons());
     }
 
     private int pset_e(int frame) {
         int values = pairGet(frame, "values");
         int list = pop(values);
-        String key = atomString(pop(values));
+        int key = pop(values);
         int value = pop(values);
-        return pairSet(list, key, value);
+        int ret = pairSet(list, atomString(key), value);
+        reap(key);
+        return ret;
     }
 
     private int pget_e(int frame) {
@@ -418,6 +426,7 @@ public class ConsHeap {
         int value = pop(values);
         int syms = pairGet(frame, "symbols");
         pairSet(syms, atomString(name), value);
+        reap(name);
         return 0;
     }
 

@@ -96,7 +96,7 @@ public class GarbageCollectionTest {
     public void testProgn() {
         ConsHeap heap = new ConsHeap(256);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "progn (1 2 3 4)");
+        int e = parser.parseString(heap, "progn ((symbol sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))");
         heap.evalExpression(e);
         heap.printOrphaned();
         checkForLeaks(heap);
