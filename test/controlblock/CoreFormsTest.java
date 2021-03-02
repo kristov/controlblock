@@ -4,11 +4,18 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class CoreFormsTest {
+    private void checkForLeaks(ConsHeap heap) {
+        int used = heap.nrUsedCons();
+        int reachable = heap.nrReachableCons();
+        assertEquals(reachable, used);
+    }
+
     private String runString(String test) {
         ConsHeap heap = new ConsHeap(256);
         Parser parser = new Parser();
         int e = parser.parseString(heap, test);
         heap.evalExpression(e);
+        checkForLeaks(heap);
         return heap.atomString(heap.result());
     }
 
@@ -18,53 +25,29 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testCons() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "list (cons bob geldof)");
-        heap.evalExpression(e);
-        int result = heap.result();
-        heap.dump("cons", result);
+    public void testPlus() {
+        assertEquals("2.0", runString("+ 1 1"));
     }
 
     @Test
-    public void testList() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "NIL");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("NIL", heap.atomString(result));
+    public void testMinus() {
+        assertEquals("3.0", runString("- 6 3"));
     }
 
     @Test
-    public void testAddSimple() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "+ 1 1");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("2.0", heap.atomString(result));
+    public void testGT() {
+        assertEquals("true", runString("> 6 3"));
+        assertEquals("NIL", runString("> 3 6"));
     }
 
     @Test
     public void testAddNested() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "+ (+ 2 2) (+ 3 3)");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("10.0", heap.atomString(result));
+        assertEquals("10.0", runString("+ (+ 2 2) (+ 3 3)"));
     }
 
     @Test
     public void testLeta() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "leta bob geldof");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("geldof", heap.atomString(result));
+        assertEquals("geldof", runString("leta bob geldof"));
     }
 
     @Test
@@ -81,12 +64,7 @@ public class CoreFormsTest {
 
     @Test
     public void testInlineLambda() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "(lambda (d e) (+ d e)) 2 3");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("5.0", heap.atomString(result));
+        assertEquals("5.0", runString("(lambda (d e) (+ d e)) 2 3"));
     }
 
     @Test
@@ -101,12 +79,7 @@ public class CoreFormsTest {
 
     @Test
     public void testProgn() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "progn (1 2 3 4)");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("4", heap.atomString(result));
+        assertEquals("4", runString("progn (1 2 3 4)"));
     }
 
     @Test
@@ -121,18 +94,11 @@ public class CoreFormsTest {
         assertEquals("2", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("3", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("4", heap.atomString(result));
-        System.out.println("unreaped cell percentage: " + heap.GCReport());
     }
 
     @Test
     public void testSymbol() {
-        ConsHeap heap = new ConsHeap(1024);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "progn ((symbol sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("8.0", heap.atomString(result));
-        System.out.println("unreaped cell percentage: " + heap.GCReport());
+        assertEquals("8.0", runString("progn ((symbol sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))"));
     }
 
 /*
