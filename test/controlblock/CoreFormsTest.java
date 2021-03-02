@@ -25,6 +25,23 @@ public class CoreFormsTest {
     }
 
     @Test
+    public void testCons() {
+        // TODO: test structures somehow
+        assertEquals("NIL", runString("cons boo (quote ())"));
+        assertEquals("NIL", runString("cons a (cons b (cons c (quote ())))"));
+    }
+
+    @Test
+    public void testCar() {
+        assertEquals("a", runString("car (quote (a b c))"));
+    }
+
+    @Test
+    public void testCdr() {
+        assertEquals("NIL", runString("cdr (quote (a b c))"));
+    }
+
+    @Test
     public void testPlus() {
         assertEquals("2.0", runString("+ 1 1"));
     }

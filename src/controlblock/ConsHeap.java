@@ -354,18 +354,39 @@ public class ConsHeap {
 
     private int cons_e(int frame) {
         int values = pairGet(frame, "values");
-        int car = pop(values);
-        int cdr = pop(values);
-        int c = cons(car(car), copy(cdr));
-        return c;
+        int item = pop(values);
+        int list = pop(values);
+        push(list, item);
+        return quote(list);
     }
 
     private int list_e(int frame) {
+        return quote(newCons());
+    }
+
+    private int car_e(int frame) {
         int values = pairGet(frame, "values");
-        int car = pop(values);
-        int list = newCons();
-        push(list, car);
-        return quote(list);
+        int list = pop(values);
+        if (atom(list)) {
+            reap(list);
+            return HALT("CAR on non-list!");
+        }
+        int ret = quote(copy(car(list)));
+        reap(list);
+        return ret;
+    }
+
+    private int cdr_e(int frame) {
+        int values = pairGet(frame, "values");
+        int list = pop(values);
+        if (atom(list)) {
+            reap(list);
+            return HALT("CDR on non-list!");
+        }
+        int n = newCons();
+        setcar(n, cdr(car(list)));
+        reap(list);
+        return quote(n);
     }
 
     private int plus_e(int frame) {
@@ -620,8 +641,10 @@ public class ConsHeap {
     public int buildEnv() {
         int env = newCons();
         addBuiltin(env, "NIL", newCons(), "nil_e");
-        addBuiltin(env, "cons", newCons(), "cons_e");
-        addBuiltin(env, "list", list1(sym("car")), "list_e");
+        addBuiltin(env, "cons", list2(sym("item"), sym("list")), "cons_e");
+        addBuiltin(env, "list", newCons(), "list_e");
+        addBuiltin(env, "car", list1(sym("list")), "car_e");
+        addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
         addBuiltin(env, "leta", list2(sym("name"), sym("value")), "leta_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, ">", list2(sym("a"), sym("b")), "greaterthan_e");
