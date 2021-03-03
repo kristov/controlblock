@@ -34,13 +34,13 @@ public class ConsHeap {
     }
 
     private void prepareRoot() {
-        int frame = list1(sym("frame"));
+        int scope = list1(sym("scope"));
         int builtins = list2(sym("builtins"), buildEnv());
         int symbols = list2(sym("symbols"), newCons());
         int result = list2(sym("result"), newCons());
-        this.root = list4(frame, builtins, symbols, result);
+        this.root = list4(scope, builtins, symbols, result);
         ref(this.root);
-        newFrame(0);
+        newScope(0);
     }
 
     public boolean atom(int i) {
@@ -348,24 +348,24 @@ public class ConsHeap {
         return list2(sym("quote"), i);
     }
 
-    private int nil_e(int frame) {
+    private int nil_e(int scope) {
         return 0;
     }
 
-    private int cons_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int cons_e(int scope) {
+        int values = pairGet(scope, "values");
         int item = pop(values);
         int list = pop(values);
         push(list, item);
         return quote(list);
     }
 
-    private int list_e(int frame) {
+    private int list_e(int scope) {
         return quote(newCons());
     }
 
-    private int car_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int car_e(int scope) {
+        int values = pairGet(scope, "values");
         int list = pop(values);
         if (atom(list)) {
             reap(list);
@@ -376,8 +376,8 @@ public class ConsHeap {
         return ret;
     }
 
-    private int cdr_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int cdr_e(int scope) {
+        int values = pairGet(scope, "values");
         int list = pop(values);
         if (atom(list)) {
             reap(list);
@@ -389,8 +389,8 @@ public class ConsHeap {
         return quote(n);
     }
 
-    private int plus_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int plus_e(int scope) {
+        int values = pairGet(scope, "values");
         int a = pop(values);
         int b = pop(values);
         Float r = Float.valueOf(atomString(a)) + Float.valueOf(atomString(b));
@@ -399,8 +399,8 @@ public class ConsHeap {
         return sym(r.toString());
     }
 
-    private int minus_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int minus_e(int scope) {
+        int values = pairGet(scope, "values");
         int a = pop(values);
         int b = pop(values);
         Float r = Float.valueOf(atomString(a)) - Float.valueOf(atomString(b));
@@ -409,8 +409,8 @@ public class ConsHeap {
         return sym(r.toString());
     }
 
-    private int greaterthan_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int greaterthan_e(int scope) {
+        int values = pairGet(scope, "values");
         int a = pop(values);
         int b = pop(values);
         int ret = 0;
@@ -424,8 +424,8 @@ public class ConsHeap {
         return quote(newCons());
     }
 
-    private int pset_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int pset_e(int scope) {
+        int values = pairGet(scope, "values");
         int list = pop(values);
         int key = pop(values);
         int value = pop(values);
@@ -434,44 +434,44 @@ public class ConsHeap {
         return ret;
     }
 
-    private int pget_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int pget_e(int scope) {
+        int values = pairGet(scope, "values");
         int list = pop(values);
         String key = atomString(pop(values));
         return pairGet(list, key);
     }
 
-    private int symbol_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int symbol_e(int scope) {
+        int values = pairGet(scope, "values");
         int name = pop(values);
         int value = pop(values);
-        int syms = pairGet(frame, "symbols");
+        int syms = pairGet(scope, "symbols");
         pairSet(syms, atomString(name), value);
         reap(name);
         return 0;
     }
 
-    private int frame_e(int frame) {
-        int values = pairGet(frame, "values");
-        int parentfr = list2(sym("parentfr"), frame);
+    private int scope_e(int scope) {
+        int values = pairGet(scope, "values");
+        int parentfr = list2(sym("parentfr"), scope);
         int symbols = list2(sym("symbols"), pop(values));
         int variables = list2(sym("variables"), pop(values));
         int stack = list2(sym("stack"), pop(values));
         int nvalues = list2(sym("values"), newCons());
-        int nframe = list5(parentfr, symbols, variables, stack, nvalues);
-        pairSet(this.root, "frame", nframe);
+        int nscope = list5(parentfr, symbols, variables, stack, nvalues);
+        pairSet(this.root, "scope", nscope);
         return 0;
     }
 
-    private int dump_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int dump_e(int scope) {
+        int values = pairGet(scope, "values");
         int i = pop(values);
         dump("value", values);
         return 0;
     }
 
-    private int symbols_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int symbols_e(int scope) {
+        int values = pairGet(scope, "values");
         int namespace = pop(values);
         int symbols = pairGet(this.root, "symbols");
         int sym = pairGet(symbols, atomString(namespace));
@@ -482,75 +482,75 @@ public class ConsHeap {
         return quote(sym);
     }
 
-    private int leta_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int leta_e(int scope) {
+        int values = pairGet(scope, "values");
         int name = pop(values);
         int value = pop(values);
-        int vars = pairGet(frame, "variables");
+        int vars = pairGet(scope, "variables");
         int ret = pairSet(vars, atomString(name), copy(value));
         reap(value);
         reap(name);
         return quote(ret);
     }
 
-    private int jbyte(int frame) {
-        int values = pairGet(frame, "values");
+    private int jbyte(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Byte obj = Byte.parseByte(val);
         return obj(obj);
     }
 
-    private int jshort(int frame) {
-        int values = pairGet(frame, "values");
+    private int jshort(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Short obj = Short.parseShort(val);
         return obj(obj);
     }
 
-    private int jint(int frame) {
-        int values = pairGet(frame, "values");
+    private int jint(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         int integer = Integer.parseInt(val);
         return obj(new Integer(integer));
     }
 
-    private int jlong(int frame) {
-        int values = pairGet(frame, "values");
+    private int jlong(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Long obj = Long.parseLong(val);
         return obj(obj);
     }
 
-    private int jfloat(int frame) {
-        int values = pairGet(frame, "values");
+    private int jfloat(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Float obj = Float.parseFloat(val);
         return obj(obj);
     }
 
-    private int jdouble(int frame) {
-        int values = pairGet(frame, "values");
+    private int jdouble(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Double obj = Double.parseDouble(val);
         return obj(obj);
     }
 
-    private int jchar(int frame) {
-        int values = pairGet(frame, "values");
+    private int jchar(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Character obj = new Character(val.charAt(0));
         return obj(obj);
     }
 
-    private int jboolean(int frame) {
-        int values = pairGet(frame, "values");
+    private int jboolean(int scope) {
+        int values = pairGet(scope, "values");
         String val = atomString(pop(values));
         Boolean obj = Boolean.parseBoolean(val);
         return obj(obj);
     }
 
-    private int jnew_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int jnew_e(int scope) {
+        int values = pairGet(scope, "values");
         String clstr = atomString(pop(values));
         Class cl;
         try {
@@ -584,8 +584,8 @@ public class ConsHeap {
         return obj(object);
     }
 
-    private int jmethod_e(int frame) {
-        int values = pairGet(frame, "values");
+    private int jmethod_e(int scope) {
+        int values = pairGet(scope, "values");
         String sym = atomString(pop(values));
         String argcs = atomString(pop(values));
         int argc = Integer.parseInt(argcs);
@@ -606,12 +606,12 @@ public class ConsHeap {
         return 0;
     }
 
-    public int dispatch(int funcsym, int frame) {
+    public int dispatch(int funcsym, int scope) {
         Object thing = atomObject(funcsym);
         if (thing instanceof Method) {
             Method method = (Method)thing;
             try {
-                return (int)method.invoke(this, frame);
+                return (int)method.invoke(this, scope);
             }
             catch (InvocationTargetException e) { return HALT(e.toString()); }
             catch (IllegalAccessException e) { return HALT(e.toString()); }
@@ -653,7 +653,7 @@ public class ConsHeap {
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
         addBuiltin(env, "symbol", list2(sym("name"), sym("value")), "symbol_e");
         addBuiltin(env, "symbols", list1(sym("namespace")), "symbols_e");
-        addBuiltin(env, "frame", list3(sym("symbols"), sym("variables"), sym("stack")), "frame_e");
+        addBuiltin(env, "scope", list3(sym("symbols"), sym("variables"), sym("stack")), "scope_e");
         addBuiltin(env, "dump", list1(sym("object")), "dump_e");
 /*
         addBuiltin(env, "jbyte", list1(sym("byte")), "jbyte");
@@ -671,8 +671,8 @@ public class ConsHeap {
     }
 
     public void pushStack(int e) {
-        int frame = getCurrentFrame();
-        int stack = pairGet(frame, "stack");
+        int scope = getCurrentScope();
+        int stack = pairGet(scope, "stack");
         push(stack, e);
     }
 
@@ -685,16 +685,16 @@ public class ConsHeap {
         evalLoop();
     }
 
-    public int getCurrentFrame() {
-        return pairGet(this.root, "frame");
+    public int getCurrentScope() {
+        return pairGet(this.root, "scope");
     }
 
     public int getValues() {
-        return pairGet(getCurrentFrame(), "values");
+        return pairGet(getCurrentScope(), "values");
     }
 
     public int getStack() {
-        return pairGet(getCurrentFrame(), "stack");
+        return pairGet(getCurrentScope(), "stack");
     }
 
     public int getRoot() {
@@ -713,7 +713,7 @@ public class ConsHeap {
         return pairGet(this.root, "result");
     }
 
-    public int newFrame(int parent) {
+    public int newScope(int parent) {
         int parentfr = list2(sym("parentfr"), parent);
         int stack = list2(sym("stack"), newCons());
         int vars = list2(sym("variables"), newCons());
@@ -723,9 +723,9 @@ public class ConsHeap {
         }
         int syms = list2(sym("symbols"), psyms);
         int values = list2(sym("values"), newCons());
-        int frame = list5(parentfr, stack, vars, syms, values);
-        pairSet(this.root, "frame", frame);
-        return frame;
+        int scope = list5(parentfr, stack, vars, syms, values);
+        pairSet(this.root, "scope", scope);
+        return scope;
     }
 
     private int resolveSymbol(int table, int symbol) {
@@ -741,30 +741,30 @@ public class ConsHeap {
         return symbol;
     }
 
-    private boolean popFrame(int frame) {
-        int values = pairGet(frame, "values");
+    private boolean popScope(int scope) {
+        int values = pairGet(scope, "values");
         int result = pop(values);
-        int last_frame = pairGet(frame, "parentfr");
-        if (last_frame == 0) {
+        int last_scope = pairGet(scope, "parentfr");
+        if (last_scope == 0) {
             pairSet(this.root, "result", result);
             return false;
         }
-        int last_stack = pairGet(last_frame, "stack");
+        int last_stack = pairGet(last_scope, "stack");
         push(last_stack, result);
-        pairSet(this.root, "frame", last_frame);
-        reap(frame);
+        pairSet(this.root, "scope", last_scope);
+        reap(scope);
         return true;
     }
 
     public boolean eval() {
-        int frame = pairGet(this.root, "frame");
-        int stack = pairGet(frame, "stack");
+        int scope = pairGet(this.root, "scope");
+        int stack = pairGet(scope, "stack");
         if (empty(stack)) {
-            return popFrame(frame);
+            return popScope(scope);
         }
-        int vars = pairGet(frame, "variables");
-        int syms = pairGet(frame, "symbols");
-        int values = pairGet(frame, "values");
+        int vars = pairGet(scope, "variables");
+        int syms = pairGet(scope, "symbols");
+        int values = pairGet(scope, "values");
         int e = pop(stack);
         if (atom(e)) {
             int builtins = pairGet(this.root, "builtins");
@@ -781,16 +781,16 @@ public class ConsHeap {
         if (symbolEq(car, "lambda")) {
             int body = cdr(cdr(car));
             if (atom(body)) {
-                int val = dispatch(body, frame);
+                int val = dispatch(body, scope);
                 if (val > 0) {
                     push(stack, val);
                 }
                 reap(e);
                 return true;
             }
-            frame = newFrame(frame);
-            stack = pairGet(frame, "stack");
-            vars = pairGet(frame, "variables");
+            scope = newScope(scope);
+            stack = pairGet(scope, "stack");
+            vars = pairGet(scope, "variables");
             int arg = car(cdr(car));
             while (arg != 0) {
                 int val = pop(values);
@@ -858,8 +858,8 @@ public class ConsHeap {
             push(values, copy(syms));
             return true;
         }
-        else if (symbolEq(car, ".frame")) {
-            push(values, copy(frame));
+        else if (symbolEq(car, ".scope")) {
+            push(values, copy(scope));
             return true;
         }
         int i = car(e);
@@ -1018,11 +1018,11 @@ public class ConsHeap {
         System.out.println();
     }
 
-    public void dumpFrame() {
-        int frame = pairGet(this.root, "frame");
-        int stack = pairGet(frame, "stack");
-        int values = pairGet(frame, "values");
-        System.out.println("> FRAME: " + frame);
+    public void dumpScope() {
+        int scope = pairGet(this.root, "scope");
+        int stack = pairGet(scope, "stack");
+        int values = pairGet(scope, "values");
+        System.out.println("> SCOPE: " + scope);
         dump(">  stack", stack);
         dump("> values", values);
     }

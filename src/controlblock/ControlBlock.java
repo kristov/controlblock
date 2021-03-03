@@ -44,10 +44,10 @@ public class ControlBlock {
             while (chunk != null) {
                 int e = parser.parseString(heap, chunk);
                 heap.pushStack(e);
-                heap.dumpFrame();
+                heap.dumpScope();
                 console.readLine();
                 while (heap.eval()) {
-                    heap.dumpFrame();
+                    heap.dumpScope();
                     console.readLine();
                 }
                 int result = heap.result();
