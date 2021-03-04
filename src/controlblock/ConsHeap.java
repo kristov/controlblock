@@ -441,7 +441,7 @@ public class ConsHeap {
         return pairGet(list, key);
     }
 
-    private int symbol_e(int scope) {
+    private int sym_e(int scope) {
         int values = pairGet(scope, "values");
         int name = pop(values);
         int value = pop(values);
@@ -493,6 +493,7 @@ public class ConsHeap {
         return quote(ret);
     }
 
+/*
     private int jbyte(int scope) {
         int values = pairGet(scope, "values");
         String val = atomString(pop(values));
@@ -605,6 +606,7 @@ public class ConsHeap {
         catch (SecurityException e) { return HALT(e.toString()); }
         return 0;
     }
+*/
 
     public int dispatch(int funcsym, int scope) {
         Object thing = atomObject(funcsym);
@@ -651,7 +653,7 @@ public class ConsHeap {
         addBuiltin(env, "-", list2(sym("a"), sym("b")), "minus_e");
         addBuiltin(env, "pset", list3(sym("list"), sym("key"), sym("value")), "pset_e");
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
-        addBuiltin(env, "symbol", list2(sym("name"), sym("value")), "symbol_e");
+        addBuiltin(env, "sym", list2(sym("name"), sym("value")), "sym_e");
         addBuiltin(env, "symbols", list1(sym("namespace")), "symbols_e");
         addBuiltin(env, "scope", list3(sym("symbols"), sym("variables"), sym("stack")), "scope_e");
         addBuiltin(env, "dump", list1(sym("object")), "dump_e");

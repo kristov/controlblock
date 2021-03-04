@@ -115,7 +115,7 @@ public class CoreFormsTest {
 
     @Test
     public void testSymbol() {
-        assertEquals("8.0", runString("progn ((symbol sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))"));
+        assertEquals("8.0", runString("progn ((sym sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))"));
     }
 
 /*
