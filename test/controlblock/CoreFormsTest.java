@@ -63,15 +63,15 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testLeta() {
-        assertEquals("geldof", runString("leta bob geldof"));
+    public void testVar() {
+        assertEquals("geldof", runString("var bob geldof"));
     }
 
     @Test
-    public void testLetaStructure() {
+    public void testVarStructure() {
         ConsHeap heap = new ConsHeap(256);
         Parser parser = new Parser();
-        int e = parser.parseString(heap, "leta mylist (quote (1 2 3))");
+        int e = parser.parseString(heap, "var mylist (quote (1 2 3))");
         heap.evalExpression(e);
         int result = heap.result();
         assertEquals("1", heap.atomString(heap.car(result)));
@@ -116,6 +116,18 @@ public class CoreFormsTest {
     @Test
     public void testSymbol() {
         assertEquals("8.0", runString("progn ((sym sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))"));
+    }
+
+    @Test
+    public void testScope() {
+        ConsHeap heap = new ConsHeap(256);
+        Parser parser = new Parser();
+        int e = parser.parseString(heap, "scope (.symbols) (quote ()) (quote ((progn ((var v 12) (dump (.scope))))))");
+        heap.evalExpression(e);
+        //heap.pushStack(e);
+        checkForLeaks(heap);
+        int scope = heap.getCurrentScope();
+        heap.dump("scope", scope);
     }
 
 /*

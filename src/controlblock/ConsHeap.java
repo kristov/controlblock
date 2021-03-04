@@ -466,7 +466,8 @@ public class ConsHeap {
     private int dump_e(int scope) {
         int values = pairGet(scope, "values");
         int i = pop(values);
-        dump("value", values);
+        dump("value", i);
+        reap(i);
         return 0;
     }
 
@@ -482,7 +483,7 @@ public class ConsHeap {
         return quote(sym);
     }
 
-    private int leta_e(int scope) {
+    private int var_e(int scope) {
         int values = pairGet(scope, "values");
         int name = pop(values);
         int value = pop(values);
@@ -647,7 +648,7 @@ public class ConsHeap {
         addBuiltin(env, "list", newCons(), "list_e");
         addBuiltin(env, "car", list1(sym("list")), "car_e");
         addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
-        addBuiltin(env, "leta", list2(sym("name"), sym("value")), "leta_e");
+        addBuiltin(env, "var", list2(sym("name"), sym("value")), "var_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, ">", list2(sym("a"), sym("b")), "greaterthan_e");
         addBuiltin(env, "-", list2(sym("a"), sym("b")), "minus_e");
