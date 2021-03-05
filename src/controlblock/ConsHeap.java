@@ -497,7 +497,17 @@ public class ConsHeap {
     private int call_e(int scope) {
         int values = pairGet(scope, "values");
         int lambda = pop(values);
-        return list4(sym("scope"), list1(sym(".symbols")), list2(sym("quote"), newCons()), quote(list1(lambda)));
+        int stack = newCons();
+        int args = car(cdr(car(lambda)));
+        push(stack, copy(lambda));
+        while (args > 0) {
+            int val = pop(values);
+            push(stack, copy(val));
+            reap(val);
+            args = cdr(args);
+        }
+        reap(lambda);
+        return list4(sym("scope"), list1(sym(".symbols")), list2(sym("quote"), newCons()), quote(stack));
     }
 
 /*
@@ -1031,10 +1041,12 @@ public class ConsHeap {
     public void dumpScope() {
         int scope = pairGet(this.root, "scope");
         int stack = pairGet(scope, "stack");
-        int values = pairGet(scope, "values");
+        int vals = pairGet(scope, "values");
+        int vars = pairGet(scope, "variables");
         System.out.println("> SCOPE: " + scope);
         dump(">  stack", stack);
-        dump("> values", values);
+        dump("> values", vals);
+        dump(">   vars", vars);
     }
 
     public void info(String name, int i) {
