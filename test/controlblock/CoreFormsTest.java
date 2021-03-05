@@ -130,6 +130,11 @@ public class CoreFormsTest {
         heap.dump("scope", scope);
     }
 
+    @Test
+    public void testCall() {
+        assertEquals("6.0", runString("call (quote (lambda (a b) (+ 1 (+ a b)))) 2 3"));
+    }
+
 /*
     @Test
     public void testJInt() {
