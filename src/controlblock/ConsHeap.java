@@ -39,7 +39,7 @@ public class ConsHeap {
         int symbols = list2(sym("symbols"), newCons());
         int result = list2(sym("result"), newCons());
         this.root = list4(scope, builtins, symbols, result);
-        ref(this.root);
+        refc(this.root);
         newScope(0);
     }
 
@@ -57,12 +57,12 @@ public class ConsHeap {
 
     public void setcar(int i, int v) {
         this.heap[i * 2] = v;
-        ref(v);
+        refc(v);
     }
 
     public void setcdr(int i, int v) {
         this.heap[(i * 2) + 1] = v;
-        ref(v);
+        refc(v);
     }
 
     public int cons(int car, int cdr) {
@@ -348,6 +348,24 @@ public class ConsHeap {
         return list2(sym("quote"), i);
     }
 
+    private int ref(int i) {
+        return list2(sym("ref"), i);
+    }
+
+    private int deref(int i) {
+        if (i == 0) {
+            return 0;
+        }
+        if (atom(i)) {
+            return HALT("dereferencing an atom!");
+        }
+        int car = car(i);
+        if (!atomString(car).equals("ref")) {
+            return HALT("dereferencing a non-reference");
+        }
+        return cdr(car);
+    }
+
     private int nil_e(int scope) {
         return 0;
     }
@@ -445,7 +463,7 @@ public class ConsHeap {
         int values = pairGet(scope, "values");
         int name = pop(values);
         int value = pop(values);
-        int syms = pairGet(scope, "symbols");
+        int syms = deref(pairGet(scope, "symbols"));
         pairSet(syms, atomString(name), value);
         reap(name);
         return 0;
@@ -480,14 +498,15 @@ public class ConsHeap {
             syms = newCons();
             pairSet(symbols, atomString(namespace), syms);
         }
-        return quote(syms);
+        reap(namespace);
+        return quote(ref(syms));
     }
 
     private int var_e(int scope) {
         int values = pairGet(scope, "values");
         int name = pop(values);
         int value = pop(values);
-        int vars = pairGet(scope, "variables");
+        int vars = pairGet(scope, "variables"); // TODO: make "variables" a ref
         int ret = pairSet(vars, atomString(name), copy(value));
         reap(value);
         reap(name);
@@ -497,6 +516,12 @@ public class ConsHeap {
     private int call_e(int scope) {
         int values = pairGet(scope, "values");
         int lambda = pop(values);
+        if (atom(lambda)) {
+            return HALT("call: not a lambda expression");
+        }
+        if (!atomString(car(lambda)).equals("lambda")) {
+            return HALT("call: not a lambda expression");
+        }
         int stack = newCons();
         int args = car(cdr(car(lambda)));
         push(stack, copy(lambda));
@@ -507,7 +532,12 @@ public class ConsHeap {
             args = cdr(args);
         }
         reap(lambda);
-        return list4(sym("scope"), list1(sym(".symbols")), list2(sym("quote"), newCons()), quote(stack));
+        return list4(
+            sym("scope"),
+            list1(sym(".symbols")),
+            list2(sym("quote"), newCons()),
+            quote(stack)
+        );
     }
 
     private int import_e(int scope) {
@@ -518,15 +548,13 @@ public class ConsHeap {
         int symbols = pairGet(this.root, "symbols");
         int srcsyms = pairGet(symbols, atomString(namespace));
         int sym = pairGet(srcsyms, atomString(symbol));
-        dump("symbols", symbols);
-        int dstsyms = pairGet(scope, "symbols");
+        int dstsyms = deref(pairGet(scope, "symbols"));
         pairSet(dstsyms, atomString(as), list4(
             sym("scope"),
-            quote(srcsyms),
+            ref(srcsyms),
             list2(sym("quote"), newCons()),
             quote(list1(sym))
         ));
-        dump("symbols", dstsyms);
         return 0;
     }
 /*
@@ -757,11 +785,11 @@ public class ConsHeap {
         int parentfr = list2(sym("parentfr"), parent);
         int stack = list2(sym("stack"), newCons());
         int vars = list2(sym("variables"), newCons());
-        int psyms = pairGet(parent, "symbols");
+        int psyms = deref(pairGet(parent, "symbols"));
         if (psyms == 0) {
             psyms = newCons();
         }
-        int syms = list2(sym("symbols"), psyms);
+        int syms = list2(sym("symbols"), ref(psyms));
         int values = list2(sym("values"), newCons());
         int scope = list5(parentfr, stack, vars, syms, values);
         pairSet(this.root, "scope", scope);
@@ -775,7 +803,7 @@ public class ConsHeap {
         int r = pairGet(table, atomString(symbol));
         if (r > 0) {
             reap(symbol);
-            ref(r);
+            refc(r);
             return r;
         }
         return symbol;
@@ -805,7 +833,7 @@ public class ConsHeap {
             return popScope(scope);
         }
         int vars = pairGet(scope, "variables");
-        int syms = pairGet(scope, "symbols");
+        int syms = deref(pairGet(scope, "symbols"));
         int values = pairGet(scope, "values");
         int e = pop(stack);
         if (atom(e)) {
@@ -820,6 +848,11 @@ public class ConsHeap {
             return true;
         }
         int car = car(e);
+        if (symbolEq(car, "quote")) {
+            push(values, copy(cdr(car)));
+            reap(e);
+            return true;
+        }
         if (symbolEq(car, "lambda")) {
             int body = cdr(cdr(car));
             if (atom(body)) {
@@ -830,7 +863,7 @@ public class ConsHeap {
                 reap(e);
                 return true;
             }
-            scope = newScope(scope);
+            scope = newScope(scope); // TODO: remove this
             stack = pairGet(scope, "stack");
             vars = pairGet(scope, "variables");
             int arg = car(cdr(car));
@@ -840,6 +873,11 @@ public class ConsHeap {
                 arg = cdr(arg);
             }
             push(stack, copy(body));
+            reap(e);
+            return true;
+        }
+        if (symbolEq(car, "ref")) {
+            push(values, copy(e));
             reap(e);
             return true;
         }
@@ -858,12 +896,7 @@ public class ConsHeap {
             reap(e);
             return true;
         }
-        else if (symbolEq(car, "quote")) {
-            push(values, copy(cdr(car)));
-            reap(e);
-            return true;
-        }
-        else if (symbolEq(car, "cond")) {
+        if (symbolEq(car, "cond")) {
             int cond = pop(e); // wrong?
             int first = pop(e);
             if (first == 0) {
@@ -876,7 +909,7 @@ public class ConsHeap {
             push(stack, test);
             return true;
         }
-        else if (symbolEq(car, "while")) {
+        if (symbolEq(car, "while")) {
             int test = cdr(car);
             int body = cdr(test);
             push(stack, copy(e)); // push original while again
@@ -884,7 +917,7 @@ public class ConsHeap {
             push(stack, copy(test));
             return true;
         }
-        else if (symbolEq(car, "then")) {
+        if (symbolEq(car, "then")) {
             int test = pop(values);
             if (isTrue(test)) {
                 pop(stack); // remove cond
@@ -892,17 +925,17 @@ public class ConsHeap {
             }
             return true;
         }
-        else if (symbolEq(car, ".variables")) {
+        if (symbolEq(car, ".variables")) {
             push(values, copy(vars));
             reap(e);
             return true;
         }
-        else if (symbolEq(car, ".symbols")) {
-            push(values, copy(syms));
+        if (symbolEq(car, ".symbols")) {
+            push(values, ref(syms));
             reap(e);
             return true;
         }
-        else if (symbolEq(car, ".scope")) {
+        if (symbolEq(car, ".scope")) {
             push(values, copy(scope));
             reap(e);
             return true;
@@ -1124,7 +1157,7 @@ public class ConsHeap {
         return this.objrefcount[0 - i];
     }
 
-    private void ref(int id) {
+    private void refc(int id) {
         if (id < 0) {
             objrefcount[0 - id]++;
             return;
