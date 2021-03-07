@@ -7,6 +7,11 @@ public class CoreFormsTest {
     private void checkForLeaks(ConsHeap heap) {
         int used = heap.nrUsedCons();
         int reachable = heap.nrReachableCons();
+        if (used != reachable) {
+            System.out.println("---------- ORPHANED ----------");
+            heap.printOrphaned();
+            System.out.println("------------------------------");
+        }
         assertEquals(reachable, used);
     }
 
@@ -120,19 +125,17 @@ public class CoreFormsTest {
 
     @Test
     public void testScope() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "scope (.symbols) (quote ()) (quote ((progn ((var v 12) (dump (.scope))))))");
-        heap.evalExpression(e);
-        //heap.pushStack(e);
-        checkForLeaks(heap);
-        int scope = heap.getCurrentScope();
-        heap.dump("scope", scope);
+        assertEquals("14.0", runString("scope (.symbols) (quote ()) (quote ((progn ((var v 12) (+ v 2)))))"));
     }
 
     @Test
     public void testCall() {
         assertEquals("6.0", runString("call (quote (lambda (a b) (+ 1 (+ a b)))) 2 3"));
+    }
+
+    @Test
+    public void testImport() {
+        assertEquals("6.0", runString("progn ((scope (symbols myNS) (quote ()) (quote ((sym sum (quote (lambda (a b) (+ 2 (+ a b)))))))))"));
     }
 
 /*

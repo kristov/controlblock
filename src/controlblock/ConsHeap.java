@@ -475,12 +475,12 @@ public class ConsHeap {
         int values = pairGet(scope, "values");
         int namespace = pop(values);
         int symbols = pairGet(this.root, "symbols");
-        int sym = pairGet(symbols, atomString(namespace));
-        if (sym == 0) {
-            sym = newCons();
-            pairSet(symbols, atomString(namespace), sym);
+        int syms = pairGet(symbols, atomString(namespace));
+        if (syms == 0) {
+            syms = newCons();
+            pairSet(symbols, atomString(namespace), syms);
         }
-        return quote(sym);
+        return quote(syms);
     }
 
     private int var_e(int scope) {
@@ -510,6 +510,25 @@ public class ConsHeap {
         return list4(sym("scope"), list1(sym(".symbols")), list2(sym("quote"), newCons()), quote(stack));
     }
 
+    private int import_e(int scope) {
+        int values = pairGet(scope, "values");
+        int symbol = pop(values);
+        int as = pop(values);
+        int namespace = pop(values);
+        int symbols = pairGet(this.root, "symbols");
+        int srcsyms = pairGet(symbols, atomString(namespace));
+        int sym = pairGet(srcsyms, atomString(symbol));
+        dump("symbols", symbols);
+        int dstsyms = pairGet(scope, "symbols");
+        pairSet(dstsyms, atomString(as), list4(
+            sym("scope"),
+            quote(srcsyms),
+            list2(sym("quote"), newCons()),
+            quote(list1(sym))
+        ));
+        dump("symbols", dstsyms);
+        return 0;
+    }
 /*
     private int jbyte(int scope) {
         int values = pairGet(scope, "values");
@@ -666,6 +685,7 @@ public class ConsHeap {
         addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
         addBuiltin(env, "var", list2(sym("name"), sym("value")), "var_e");
         addBuiltin(env, "call", list1(sym("lambda")), "call_e");
+        addBuiltin(env, "import", list3(sym("function"), sym("as"), sym("namespace")), "import_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, ">", list2(sym("a"), sym("b")), "greaterthan_e");
         addBuiltin(env, "-", list2(sym("a"), sym("b")), "minus_e");
@@ -770,7 +790,9 @@ public class ConsHeap {
             return false;
         }
         int last_stack = pairGet(last_scope, "stack");
-        push(last_stack, result);
+        if (result > 0) {
+            push(last_stack, result);
+        }
         pairSet(this.root, "scope", last_scope);
         reap(scope);
         return true;
@@ -872,14 +894,17 @@ public class ConsHeap {
         }
         else if (symbolEq(car, ".variables")) {
             push(values, copy(vars));
+            reap(e);
             return true;
         }
         else if (symbolEq(car, ".symbols")) {
             push(values, copy(syms));
+            reap(e);
             return true;
         }
         else if (symbolEq(car, ".scope")) {
             push(values, copy(scope));
+            reap(e);
             return true;
         }
         int i = car(e);
