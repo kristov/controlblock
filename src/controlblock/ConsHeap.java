@@ -317,6 +317,14 @@ public class ConsHeap {
         return thing.toString();
     }
 
+    public int atomInteger(int n) {
+        Object thing = atomObject(n);
+        if (thing instanceof String) {
+            return Integer.parseInt((String)thing);
+        }
+        return HALT("cannot turn thing into an integer");
+    }
+
     public Object atomObject(int n) {
         if (!atom(n)) {
             return (String)objects[0];
@@ -376,10 +384,6 @@ public class ConsHeap {
         int list = pop(values);
         push(list, item);
         return quote(list);
-    }
-
-    private int list_e(int scope) {
-        return quote(newCons());
     }
 
     private int car_e(int scope) {
@@ -475,7 +479,7 @@ public class ConsHeap {
         int symbols = list2(sym("symbols"), pop(values));
         int variables = list2(sym("variables"), pop(values));
         int stack = list2(sym("stack"), pop(values));
-        int nvalues = list2(sym("values"), newCons());
+        int nvalues = list2(sym("values"), pop(values));
         int nscope = list5(parentfr, symbols, variables, stack, nvalues);
         pairSet(this.root, "scope", nscope);
         return 0;
@@ -513,6 +517,31 @@ public class ConsHeap {
         return quote(ret);
     }
 
+    private int func_e(int scope) {
+        int values = pairGet(scope, "values");
+        int lambda = pop(values);
+        if (atom(lambda)) {
+            return HALT("func: not a lambda expression");
+        }
+        if (!atomString(car(lambda)).equals("lambda")) {
+            return HALT("func: not a lambda expression");
+        }
+        int stack = newCons();
+        int args = cdr(car(lambda));
+        int arglen = length(args);
+        dump("args", args);
+        System.out.println(arglen);
+        push(stack, copy(lambda));
+        int syms = deref(pairGet(scope, "symbols"));
+        return quote(list5(
+            sym("scope"),
+            quote(ref(syms)),
+            quote(newCons()),
+            quote(stack),
+            list2(sym("listn"), sym(Integer.toString(arglen)))
+        ));
+    }
+
     private int call_e(int scope) {
         int values = pairGet(scope, "values");
         int lambda = pop(values);
@@ -532,11 +561,12 @@ public class ConsHeap {
             args = cdr(args);
         }
         reap(lambda);
-        return list4(
+        return list5(
             sym("scope"),
             list1(sym(".symbols")),
             list2(sym("quote"), newCons()),
-            quote(stack)
+            quote(stack),
+            quote(newCons())
         );
     }
 
@@ -549,14 +579,31 @@ public class ConsHeap {
         int srcsyms = pairGet(symbols, atomString(namespace));
         int sym = pairGet(srcsyms, atomString(symbol));
         int dstsyms = deref(pairGet(scope, "symbols"));
-        pairSet(dstsyms, atomString(as), list4(
+        pairSet(dstsyms, atomString(as), list5(
             sym("scope"),
             ref(srcsyms),
             list2(sym("quote"), newCons()),
-            quote(list1(sym))
+            quote(list1(sym(atomString(symbol)))),
+            list2(sym("listn"), sym("2"))
         ));
+        dump("dstsyms", dstsyms);
         return 0;
     }
+
+    private int listn_e(int scope) {
+        int values = pairGet(scope, "values");
+        int n = pop(values);
+        int count = atomInteger(n);
+        reap(n);
+        int list = newCons();
+        for (int j = 0; j < count; j++) {
+            int v = pop(values);
+            push(list, copy(v));
+            reap(v);
+        }
+        return quote(list);
+    }
+
 /*
     private int jbyte(int scope) {
         int values = pairGet(scope, "values");
@@ -708,12 +755,12 @@ public class ConsHeap {
         int env = newCons();
         addBuiltin(env, "NIL", newCons(), "nil_e");
         addBuiltin(env, "cons", list2(sym("item"), sym("list")), "cons_e");
-        addBuiltin(env, "list", newCons(), "list_e");
         addBuiltin(env, "car", list1(sym("list")), "car_e");
         addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
         addBuiltin(env, "var", list2(sym("name"), sym("value")), "var_e");
-        addBuiltin(env, "call", list1(sym("lambda")), "call_e");
+        addBuiltin(env, "func", list1(sym("lambda")), "func_e");
         addBuiltin(env, "import", list3(sym("function"), sym("as"), sym("namespace")), "import_e");
+        addBuiltin(env, "listn", list1(sym("count")), "listn_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
         addBuiltin(env, ">", list2(sym("a"), sym("b")), "greaterthan_e");
         addBuiltin(env, "-", list2(sym("a"), sym("b")), "minus_e");

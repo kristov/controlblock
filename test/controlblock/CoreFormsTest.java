@@ -129,14 +129,19 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testCall() {
-        assertEquals("6.0", runString("call (quote (lambda (a b) (+ 1 (+ a b)))) 2 3"));
+    public void testFunc() {
+        assertEquals("6.0", runString("func (quote (lambda (a b) (+ 1 (+ a b)))) 2 3"));
     }
 
     @Test
-    public void testImport() {
-        assertEquals("6.0", runString("progn ((scope (symbols myNS) (quote ()) (quote ((sym sum (quote (lambda (a b) (+ 2 (+ a b)))))))))"));
+    public void testListn() {
+        assertEquals("6.0", runString("listn 2 4 5"));
     }
+
+//    @Test
+//    public void testImport() {
+//        assertEquals("6.0", runString("progn ((scope (symbols myNS) (quote ()) (quote ((sym sum (quote (lambda (a b) (+ 2 (+ a b)))))))))"));
+//    }
 
 /*
     @Test
