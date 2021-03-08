@@ -379,7 +379,7 @@ public class ConsHeap {
     }
 
     private int cons_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int item = pop(values);
         int list = pop(values);
         push(list, item);
@@ -387,7 +387,7 @@ public class ConsHeap {
     }
 
     private int car_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int list = pop(values);
         if (atom(list)) {
             reap(list);
@@ -399,7 +399,7 @@ public class ConsHeap {
     }
 
     private int cdr_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int list = pop(values);
         if (atom(list)) {
             reap(list);
@@ -412,7 +412,7 @@ public class ConsHeap {
     }
 
     private int plus_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int a = pop(values);
         int b = pop(values);
         Float r = Float.valueOf(atomString(a)) + Float.valueOf(atomString(b));
@@ -422,7 +422,7 @@ public class ConsHeap {
     }
 
     private int minus_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int a = pop(values);
         int b = pop(values);
         Float r = Float.valueOf(atomString(a)) - Float.valueOf(atomString(b));
@@ -432,7 +432,7 @@ public class ConsHeap {
     }
 
     private int greaterthan_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int a = pop(values);
         int b = pop(values);
         int ret = 0;
@@ -447,7 +447,7 @@ public class ConsHeap {
     }
 
     private int pset_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int list = pop(values);
         int key = pop(values);
         int value = pop(values);
@@ -457,14 +457,14 @@ public class ConsHeap {
     }
 
     private int pget_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int list = pop(values);
         String key = atomString(pop(values));
         return pairGet(list, key);
     }
 
     private int sym_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int name = pop(values);
         int value = pop(values);
         int syms = deref(pairGet(scope, "symbols"));
@@ -473,20 +473,8 @@ public class ConsHeap {
         return 0;
     }
 
-    private int scope_e(int scope) {
-        int values = pairGet(scope, "values");
-        int parentfr = list2(sym("parentfr"), scope);
-        int symbols = list2(sym("symbols"), pop(values));
-        int variables = list2(sym("variables"), pop(values));
-        int stack = list2(sym("stack"), pop(values));
-        int nvalues = list2(sym("values"), pop(values));
-        int nscope = list5(parentfr, symbols, variables, stack, nvalues);
-        pairSet(this.root, "scope", nscope);
-        return 0;
-    }
-
     private int dump_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int i = pop(values);
         dump("value", i);
         reap(i);
@@ -494,7 +482,7 @@ public class ConsHeap {
     }
 
     private int symbols_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int namespace = pop(values);
         int symbols = pairGet(this.root, "symbols");
         int syms = pairGet(symbols, atomString(namespace));
@@ -507,103 +495,67 @@ public class ConsHeap {
     }
 
     private int var_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int name = pop(values);
         int value = pop(values);
-        int vars = pairGet(scope, "variables"); // TODO: make "variables" a ref
+        int vars = deref(pairGet(scope, "variables"));
         int ret = pairSet(vars, atomString(name), copy(value));
         reap(value);
         reap(name);
         return quote(ret);
     }
 
-    private int func_e(int scope) {
-        int values = pairGet(scope, "values");
-        int lambda = pop(values);
-        if (atom(lambda)) {
-            return HALT("func: not a lambda expression");
-        }
-        if (!atomString(car(lambda)).equals("lambda")) {
-            return HALT("func: not a lambda expression");
-        }
-        int stack = newCons();
-        int args = cdr(car(lambda));
-        int arglen = length(args);
-        dump("args", args);
-        System.out.println(arglen);
-        push(stack, copy(lambda));
-        int syms = deref(pairGet(scope, "symbols"));
-        return quote(list5(
-            sym("scope"),
-            quote(ref(syms)),
-            quote(newCons()),
-            quote(stack),
-            list2(sym("listn"), sym(Integer.toString(arglen)))
-        ));
-    }
-
-    private int call_e(int scope) {
-        int values = pairGet(scope, "values");
-        int lambda = pop(values);
-        if (atom(lambda)) {
-            return HALT("call: not a lambda expression");
-        }
-        if (!atomString(car(lambda)).equals("lambda")) {
-            return HALT("call: not a lambda expression");
-        }
-        int stack = newCons();
-        int args = car(cdr(car(lambda)));
-        push(stack, copy(lambda));
-        while (args > 0) {
-            int val = pop(values);
-            push(stack, copy(val));
-            reap(val);
-            args = cdr(args);
-        }
-        reap(lambda);
-        return list5(
-            sym("scope"),
-            list1(sym(".symbols")),
-            list2(sym("quote"), newCons()),
-            quote(stack),
-            quote(newCons())
-        );
-    }
-
     private int import_e(int scope) {
-        int values = pairGet(scope, "values");
-        int symbol = pop(values);
-        int as = pop(values);
-        int namespace = pop(values);
-        int symbols = pairGet(this.root, "symbols");
-        int srcsyms = pairGet(symbols, atomString(namespace));
-        int sym = pairGet(srcsyms, atomString(symbol));
-        int dstsyms = deref(pairGet(scope, "symbols"));
-        pairSet(dstsyms, atomString(as), list5(
-            sym("scope"),
-            ref(srcsyms),
-            list2(sym("quote"), newCons()),
-            quote(list1(sym(atomString(symbol)))),
-            list2(sym("listn"), sym("2"))
-        ));
-        dump("dstsyms", dstsyms);
         return 0;
     }
 
     private int listn_e(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int n = pop(values);
         int count = atomInteger(n);
         reap(n);
-        int list = newCons();
+        int tmp = newCons();
         for (int j = 0; j < count; j++) {
             int v = pop(values);
-            push(list, copy(v));
+            push(tmp, copy(v));
             reap(v);
         }
+        int list = reverse(tmp);
+        reap(tmp);
         return quote(list);
     }
 
+    private int scope_values_e(int scope) {
+        int values = deref(pairGet(scope, "values"));
+        int symbols = copy(pairGet(scope, "symbols"));
+        int stack = list1(pop(values));
+        int nvalues = pop(values);
+        int nscope = list5(
+            list2(sym("parentfr"), scope),
+            list2(sym("symbols"), symbols),
+            list2(sym("variables"), ref(newCons())),
+            list2(sym("stack"), stack),
+            list2(sym("values"), ref(nvalues))
+        );
+        pairSet(this.root, "scope", nscope);
+        return 0;
+    }
+
+    private int scope_symbols_e(int scope) {
+        int values = deref(pairGet(scope, "values"));
+        int nvalues = copy(pairGet(scope, "values"));
+        int stack = list1(pop(values));
+        int symbols = pop(values);
+        int nscope = list5(
+            list2(sym("parentfr"), scope),
+            list2(sym("symbols"), symbols),
+            list2(sym("variables"), ref(newCons())),
+            list2(sym("stack"), stack),
+            list2(sym("values"), nvalues)
+        );
+        pairSet(this.root, "scope", nscope);
+        return 0;
+    }
 /*
     private int jbyte(int scope) {
         int values = pairGet(scope, "values");
@@ -758,7 +710,8 @@ public class ConsHeap {
         addBuiltin(env, "car", list1(sym("list")), "car_e");
         addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
         addBuiltin(env, "var", list2(sym("name"), sym("value")), "var_e");
-        addBuiltin(env, "func", list1(sym("lambda")), "func_e");
+        addBuiltin(env, "scope-values", list2(sym("expression"), sym("values")), "scope_values_e");
+        addBuiltin(env, "scope-symbols", list2(sym("expression"), sym("symbols")), "scope_symbols_e");
         addBuiltin(env, "import", list3(sym("function"), sym("as"), sym("namespace")), "import_e");
         addBuiltin(env, "listn", list1(sym("count")), "listn_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
@@ -768,7 +721,6 @@ public class ConsHeap {
         addBuiltin(env, "pget", list2(sym("list"), sym("key")), "pget_e");
         addBuiltin(env, "sym", list2(sym("name"), sym("value")), "sym_e");
         addBuiltin(env, "symbols", list1(sym("namespace")), "symbols_e");
-        addBuiltin(env, "scope", list3(sym("symbols"), sym("variables"), sym("stack")), "scope_e");
         addBuiltin(env, "dump", list1(sym("object")), "dump_e");
 /*
         addBuiltin(env, "jbyte", list1(sym("byte")), "jbyte");
@@ -831,13 +783,13 @@ public class ConsHeap {
     public int newScope(int parent) {
         int parentfr = list2(sym("parentfr"), parent);
         int stack = list2(sym("stack"), newCons());
-        int vars = list2(sym("variables"), newCons());
+        int vars = list2(sym("variables"), ref(newCons()));
         int psyms = deref(pairGet(parent, "symbols"));
         if (psyms == 0) {
             psyms = newCons();
         }
         int syms = list2(sym("symbols"), ref(psyms));
-        int values = list2(sym("values"), newCons());
+        int values = list2(sym("values"), ref(newCons()));
         int scope = list5(parentfr, stack, vars, syms, values);
         pairSet(this.root, "scope", scope);
         return scope;
@@ -857,7 +809,7 @@ public class ConsHeap {
     }
 
     private boolean popScope(int scope) {
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int result = pop(values);
         int last_scope = pairGet(scope, "parentfr");
         if (last_scope == 0) {
@@ -879,9 +831,9 @@ public class ConsHeap {
         if (empty(stack)) {
             return popScope(scope);
         }
-        int vars = pairGet(scope, "variables");
+        int vars = deref(pairGet(scope, "variables"));
         int syms = deref(pairGet(scope, "symbols"));
-        int values = pairGet(scope, "values");
+        int values = deref(pairGet(scope, "values"));
         int e = pop(stack);
         if (atom(e)) {
             int builtins = pairGet(this.root, "builtins");
@@ -910,9 +862,6 @@ public class ConsHeap {
                 reap(e);
                 return true;
             }
-            scope = newScope(scope); // TODO: remove this
-            stack = pairGet(scope, "stack");
-            vars = pairGet(scope, "variables");
             int arg = car(cdr(car));
             while (arg != 0) {
                 int val = pop(values);

@@ -124,16 +124,6 @@ public class CoreFormsTest {
     }
 
     @Test
-    public void testScope() {
-        assertEquals("14.0", runString("scope (.symbols) (quote ()) (quote ((progn ((var v 12) (+ v 2)))))"));
-    }
-
-    @Test
-    public void testFunc() {
-        assertEquals("6.0", runString("func (quote (lambda (a b) (+ 1 (+ a b)))) 2 3"));
-    }
-
-    @Test
     public void testListn() {
         assertEquals("6.0", runString("listn 2 4 5"));
     }
