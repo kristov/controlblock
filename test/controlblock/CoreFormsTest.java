@@ -57,6 +57,11 @@ public class CoreFormsTest {
     }
 
     @Test
+    public void testDump() {
+        assertEquals("(1 2 3 boo)", runString("dump (quote (1 2 3 boo))"));
+    }
+
+    @Test
     public void testGT() {
         assertEquals("true", runString("> 6 3"));
         assertEquals("NIL", runString("> 3 6"));
@@ -125,13 +130,18 @@ public class CoreFormsTest {
 
     @Test
     public void testListn() {
-        assertEquals("6.0", runString("listn 2 4 5"));
+        assertEquals("(4 5)", runString("dump (listn 2 4 5)"));
     }
 
-//    @Test
-//    public void testImport() {
-//        assertEquals("6.0", runString("progn ((scope (symbols myNS) (quote ()) (quote ((sym sum (quote (lambda (a b) (+ 2 (+ a b)))))))))"));
-//    }
+    @Test
+    public void testFscope() {
+        assertEquals("5.0", runString("fscope (quote (lambda (d e) (+ d e))) 2 3"));
+    }
+
+    @Test
+    public void testImport() {
+        assertEquals("14.0", runString("progn ((symbind (quote (sym sumand2 (quote (fscope (quote (lambda (a b) (+ 2 (+ a b)))))))) (symbols MYNS)) (import MYNS (quote sumand2) (quote MYNS_sumand2)) (MYNS_sumand2 6 6))"));
+    }
 
 /*
     @Test

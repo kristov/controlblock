@@ -476,9 +476,9 @@ public class ConsHeap {
     private int dump_e(int scope) {
         int values = deref(pairGet(scope, "values"));
         int i = pop(values);
-        dump("value", i);
+        String d = dumpString(i);
         reap(i);
-        return 0;
+        return sym(d);
     }
 
     private int symbols_e(int scope) {
@@ -506,6 +506,26 @@ public class ConsHeap {
     }
 
     private int import_e(int scope) {
+        int values = deref(pairGet(scope, "values"));
+        int namespace = pop(values);
+        int symbol = pop(values);
+        int as = pop(values);
+        int symbols = pairGet(this.root, "symbols");
+        int srcsyms = pairGet(symbols, atomString(namespace));
+        if (srcsyms == 0) {
+            return HALT("namespace '" + atomString(namespace) + "' not found");
+        }
+        int srcsym = pairGet(srcsyms, atomString(symbol));
+        if (srcsym == 0) {
+            return HALT("symbol '" + atomString(symbol) + "' not found in namespace '" + atomString(namespace) + "'");
+        }
+        int dstsyms = deref(pairGet(scope, "symbols"));
+        pairSet(dstsyms, atomString(as), list3(
+            sym("symbind"),
+            quote(list1(symbol)),
+            list2(sym("symbols"), namespace)
+        ));
+        reap(as);
         return 0;
     }
 
@@ -525,25 +545,25 @@ public class ConsHeap {
         return quote(list);
     }
 
-    private int scope_values_e(int scope) {
-        int values = deref(pairGet(scope, "values"));
+    private int fscope_e(int scope) {
+        int nvalues = pairGet(scope, "values");
+        int values = deref(nvalues);
         int symbols = copy(pairGet(scope, "symbols"));
         int stack = list1(pop(values));
-        int nvalues = pop(values);
         int nscope = list5(
             list2(sym("parentfr"), scope),
             list2(sym("symbols"), symbols),
             list2(sym("variables"), ref(newCons())),
             list2(sym("stack"), stack),
-            list2(sym("values"), ref(nvalues))
+            list2(sym("values"), copy(nvalues))
         );
         pairSet(this.root, "scope", nscope);
         return 0;
     }
 
-    private int scope_symbols_e(int scope) {
-        int values = deref(pairGet(scope, "values"));
-        int nvalues = copy(pairGet(scope, "values"));
+    private int symbind_e(int scope) {
+        int nvalues = pairGet(scope, "values");
+        int values = deref(nvalues);
         int stack = list1(pop(values));
         int symbols = pop(values);
         int nscope = list5(
@@ -551,11 +571,29 @@ public class ConsHeap {
             list2(sym("symbols"), symbols),
             list2(sym("variables"), ref(newCons())),
             list2(sym("stack"), stack),
-            list2(sym("values"), nvalues)
+            list2(sym("values"), copy(nvalues))
         );
         pairSet(this.root, "scope", nscope);
         return 0;
     }
+
+    private int varbind_e(int scope) {
+        int nvalues = pairGet(scope, "values");
+        int values = deref(nvalues);
+        int symbols = copy(pairGet(scope, "symbols"));
+        int stack = list1(pop(values));
+        int variables = pop(values);
+        int nscope = list5(
+            list2(sym("parentfr"), scope),
+            list2(sym("symbols"), symbols),
+            list2(sym("variables"), ref(variables)),
+            list2(sym("stack"), stack),
+            list2(sym("values"), copy(nvalues))
+        );
+        pairSet(this.root, "scope", nscope);
+        return 0;
+    }
+
 /*
     private int jbyte(int scope) {
         int values = pairGet(scope, "values");
@@ -710,8 +748,9 @@ public class ConsHeap {
         addBuiltin(env, "car", list1(sym("list")), "car_e");
         addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
         addBuiltin(env, "var", list2(sym("name"), sym("value")), "var_e");
-        addBuiltin(env, "scope-values", list2(sym("expression"), sym("values")), "scope_values_e");
-        addBuiltin(env, "scope-symbols", list2(sym("expression"), sym("symbols")), "scope_symbols_e");
+        addBuiltin(env, "fscope", list1(sym("expression")), "fscope_e");
+        addBuiltin(env, "symbind", list2(sym("expression"), sym("symbols")), "symbind_e");
+        addBuiltin(env, "varbind", list2(sym("expression"), sym("variables")), "varbind_e");
         addBuiltin(env, "import", list3(sym("function"), sym("as"), sym("namespace")), "import_e");
         addBuiltin(env, "listn", list1(sym("count")), "listn_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
@@ -1056,47 +1095,54 @@ public class ConsHeap {
         System.out.println();
     }
 
-    public void dumpCons(int indent, int i) {
+    public void dump(String name, int i) {
+        flag.clear();
+        System.out.print(name + ": ");
+        String dump = dumpString(i);
+        System.out.println(dump);
+    }
+
+    public void dumpStringCons(StringBuilder build, int i) {
         if (flag.get(i)) {
-            System.out.print("!");
+            build.append("!");
             return;
         }
         flag.set(i);
         int n = i;
         while (n > 0) {
             if (atom(n)) {
-                System.out.print(atomString(n));
-                if (heap[(n * 2) + 1] > 0) {
-                    System.out.print(" ");
+                build.append(atomString(n));
+                if (cdr(n) > 0) {
+                    build.append(" ");
                 }
             }
-            else if (heap[n * 2] == 0 && heap[(n * 2) + 1] == 0) {
-                System.out.print("()");
+            else if (car(n) == 0 && cdr(n) == 0) {
+                build.append("()");
             }
             else {
-                System.out.print("(");
-                dumpCons(indent + 2, heap[n * 2]);
-                System.out.print(")");
-                if (heap[(n * 2) + 1] > 0) {
-                    System.out.print(" ");
+                build.append("(");
+                dumpStringCons(build, car(n));
+                build.append(")");
+                if (cdr(n) > 0) {
+                    build.append(" ");
                 }
             }
-            n = heap[(n * 2) + 1];
+            n = cdr(n);
         }
     }
 
-    public void dump(String name, int i) {
+    public String dumpString(int i) {
         flag.clear();
-        System.out.print(name + ": ");
-        dumpCons(0, i);
-        System.out.println();
+        StringBuilder build = new StringBuilder();
+        dumpStringCons(build, i);
+        return build.toString();
     }
 
     public void dumpScope() {
         int scope = pairGet(this.root, "scope");
         int stack = pairGet(scope, "stack");
-        int vals = pairGet(scope, "values");
-        int vars = pairGet(scope, "variables");
+        int vals = deref(pairGet(scope, "values"));
+        int vars = deref(pairGet(scope, "variables"));
         System.out.println("> SCOPE: " + scope);
         dump(">  stack", stack);
         dump("> values", vals);
