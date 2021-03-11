@@ -96,17 +96,17 @@ public class CoreFormsTest {
 
     @Test
     public void testCond() {
-        ConsHeap heap = new ConsHeap(256);
-        Parser parser = new Parser();
-        int e = parser.parseString(heap, "cond (0 1) (0 2) (1 3)");
-        heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("3", heap.atomString(result));
+        assertEquals("3", runString("cond (0 1) (0 2) (1 3)"));
+    }
+
+    @Test
+    public void testWhile() {
+        assertEquals("0.0", runString("progn (quote ((var (quote c) 3) (while (> c 0) (var (quote c) (- c 1))) (c)))"));
     }
 
     @Test
     public void testProgn() {
-        assertEquals("4", runString("progn (1 2 3 4)"));
+        assertEquals("4", runString("progn (quote (1 2 3 4))"));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class CoreFormsTest {
 
     @Test
     public void testSymbol() {
-        assertEquals("8.0", runString("progn ((sym sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4))"));
+        assertEquals("8.0", runString("progn (quote ((sym sum (quote (lambda (a b) (+ 2 (+ a b))))) (sum 2 4)))"));
     }
 
     @Test
@@ -140,7 +140,7 @@ public class CoreFormsTest {
 
     @Test
     public void testImport() {
-        assertEquals("14.0", runString("progn ((symbind (quote (sym sumand2 (quote (fscope (quote (lambda (a b) (+ 2 (+ a b)))))))) (symbols MYNS)) (import MYNS (quote sumand2) (quote MYNS_sumand2)) (MYNS_sumand2 6 6))"));
+        assertEquals("14.0", runString("progn (quote ((symbind (quote (sym sumand2 (quote (fscope (quote (lambda (a b) (+ 2 (+ a b)))))))) (symbols MYNS)) (import MYNS (quote sumand2) (quote MYNS_sumand2)) (MYNS_sumand2 6 6)))"));
     }
 
 /*

@@ -594,6 +594,22 @@ public class ConsHeap {
         return 0;
     }
 
+    private int progn_e(int scope) {
+        int values = deref(pairGet(scope, "values"));
+        int symbols = copy(pairGet(scope, "symbols"));
+        int variables = copy(pairGet(scope, "variables"));
+        int stack = pop(values);
+        int nscope = list5(
+            list2(sym("parentfr"), scope),
+            list2(sym("symbols"), symbols),
+            list2(sym("variables"), variables),
+            list2(sym("stack"), stack),
+            list2(sym("values"), ref(newCons()))
+        );
+        pairSet(this.root, "scope", nscope);
+        return 0;
+    }
+
 /*
     private int jbyte(int scope) {
         int values = pairGet(scope, "values");
@@ -751,6 +767,7 @@ public class ConsHeap {
         addBuiltin(env, "fscope", list1(sym("expression")), "fscope_e");
         addBuiltin(env, "symbind", list2(sym("expression"), sym("symbols")), "symbind_e");
         addBuiltin(env, "varbind", list2(sym("expression"), sym("variables")), "varbind_e");
+        addBuiltin(env, "progn", list1(sym("stack")), "progn_e");
         addBuiltin(env, "import", list3(sym("function"), sym("as"), sym("namespace")), "import_e");
         addBuiltin(env, "listn", list1(sym("count")), "listn_e");
         addBuiltin(env, "+", list2(sym("a"), sym("b")), "plus_e");
@@ -920,44 +937,57 @@ public class ConsHeap {
             push(stack, e);
             return false;
         }
-        if (symbolEq(car, "progn")) {
-            int rev = reverse(cdr(car));
-            int i = car(rev);
-            while (i != 0) {
-                push(stack, copy(i));
-                i = cdr(i);
-            }
-            reap(rev);
-            reap(e);
-            return true;
-        }
         if (symbolEq(car, "cond")) {
-            int cond = pop(e); // wrong?
-            int first = pop(e);
+            int first = cdr(car);
             if (first == 0) {
                 return true;
             }
+            int nextcond = list1(copy(car));
             int test = car(first);
-            push(e, cond);
-            push(stack, e);
-            push(stack, list2(sym("then"), cdr(test)));
-            push(stack, test);
+            int then = cdr(test);
+            int next = cdr(first);
+            while (next > 0) {
+                append(nextcond, copy(next));
+                next = cdr(next);
+            }
+            push(stack, nextcond);
+            push(stack, list2(sym("cond-drop"), copy(then)));
+            push(stack, copy(test));
+            reap(e);
+            return true;
+        }
+        if (symbolEq(car, "cond-drop")) {
+            int test = pop(values);
+            if (isTrue(test)) {
+                int cond = pop(stack);
+                reap(cond);
+                push(stack, copy(cdr(car)));
+            }
+            reap(test);
+            reap(e);
             return true;
         }
         if (symbolEq(car, "while")) {
             int test = cdr(car);
             int body = cdr(test);
-            push(stack, copy(e)); // push original while again
-            push(stack, list2(sym("then"), copy(body)));
+            push(stack, list3(copy(car), copy(test), copy(body)));
+            push(stack, list2(sym("while-drop"), copy(body)));
             push(stack, copy(test));
+            reap(e);
             return true;
         }
-        if (symbolEq(car, "then")) {
+        if (symbolEq(car, "while-drop")) {
             int test = pop(values);
             if (isTrue(test)) {
-                pop(stack); // remove cond
                 push(stack, copy(cdr(car)));
+                reap(test);
+                reap(e);
+                return true;
             }
+            int wexp = pop(stack);
+            reap(wexp);
+            reap(test);
+            reap(e);
             return true;
         }
         if (symbolEq(car, ".variables")) {
