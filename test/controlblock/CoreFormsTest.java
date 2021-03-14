@@ -21,7 +21,7 @@ public class CoreFormsTest {
         int e = parser.parseString(heap, test);
         heap.evalExpression(e);
         checkForLeaks(heap);
-        return heap.atomString(heap.result());
+        return heap.atomString(heap.getOutput());
     }
 
     @Test
@@ -83,7 +83,7 @@ public class CoreFormsTest {
         Parser parser = new Parser();
         int e = parser.parseString(heap, "var mylist (quote (1 2 3))");
         heap.evalExpression(e);
-        int result = heap.result();
+        int result = heap.getOutput();
         assertEquals("1", heap.atomString(heap.car(result)));
         assertEquals("2", heap.atomString(heap.cdr(heap.car(result))));
         assertEquals("3", heap.atomString(heap.cdr(heap.cdr(heap.car(result)))));
@@ -115,7 +115,7 @@ public class CoreFormsTest {
         Parser parser = new Parser();
         int e = parser.parseString(heap, "quote (1 2 3 4)");
         heap.evalExpression(e);
-        int result = heap.result();
+        int result = heap.getOutput();
         result = heap.car(result);
         assertEquals("1", heap.atomString(result)); result = heap.cdr(result);
         assertEquals("2", heap.atomString(result)); result = heap.cdr(result);
@@ -140,7 +140,13 @@ public class CoreFormsTest {
 
     @Test
     public void testImport() {
-        assertEquals("14.0", runString("progn (quote ((symbind (quote (sym sumand2 (quote (fscope (quote (lambda (a b) (+ 2 (+ a b)))))))) (symbols MYNS)) (import MYNS (quote sumand2) (quote MYNS_sumand2)) (MYNS_sumand2 6 6)))"));
+        assertEquals("14.0", runString(
+            "progn (quote (" +
+                "(symbind (quote (sym sumand2 (quote (fscope (quote (lambda (a b) (+ 2 (+ a b)))))))) (symbols MYNS)) " +
+                "(import MYNS (quote sumand2) (quote MYNS_sumand2)) " +
+                "(MYNS_sumand2 6 6)" +
+            "))"
+        ));
     }
 
 /*
@@ -150,8 +156,8 @@ public class CoreFormsTest {
         Parser parser = new Parser();
         int e = parser.parseString(heap, "jint 5");
         heap.evalExpression(e);
-        int result = heap.result();
-        assertEquals("5", heap.atomString(result));
+        int output = heap.output();
+        assertEquals("5", heap.atomString(output));
     }
 
     @Test
@@ -160,9 +166,9 @@ public class CoreFormsTest {
         Parser parser = new Parser();
         int e = parser.parseString(heap, "jnew java.lang.Integer 1 10");
         heap.evalExpression(e);
-        int result = heap.result();
-        heap.dump("result", result);
-        //assertEquals("8.0", heap.atomString(result));
+        int output = heap.output();
+        heap.dump("output", output);
+        //assertEquals("8.0", heap.atomString(output));
     }
 
     @Test
@@ -173,7 +179,7 @@ public class CoreFormsTest {
         heap.evalExpression(e);
         int stack = heap.getStack();
         heap.dump("stack", stack);
-        //assertEquals("8.0", heap.atomString(result));
+        //assertEquals("8.0", heap.atomString(output));
     }
 */
 }

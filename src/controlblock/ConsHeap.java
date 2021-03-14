@@ -37,8 +37,9 @@ public class ConsHeap {
         int scope = list1(sym("scope"));
         int builtins = list2(sym("builtins"), buildEnv());
         int symbols = list2(sym("symbols"), newCons());
-        int result = list2(sym("result"), newCons());
-        this.root = list4(scope, builtins, symbols, result);
+        int input = list2(sym("input"), newCons());
+        int output = list2(sym("output"), newCons());
+        this.root = list5(scope, builtins, symbols, input, output);
         refc(this.root);
         newScope(0);
     }
@@ -793,18 +794,12 @@ public class ConsHeap {
         return env;
     }
 
-    public void pushStack(int e) {
-        int scope = getCurrentScope();
-        int stack = pairGet(scope, "stack");
-        push(stack, e);
-    }
-
     public void evalLoop() {
         while (eval()) {}
     }
 
     public void evalExpression(int start) {
-        pushStack(start);
+        setInput(start);
         evalLoop();
     }
 
@@ -832,8 +827,12 @@ public class ConsHeap {
         return pairGet(table, symbol);
     }
 
-    public int result() {
-        return pairGet(this.root, "result");
+    public int getOutput() {
+        return pairGet(this.root, "output");
+    }
+
+    public void setInput(int input) {
+        pairSet(this.root, "input", input);
     }
 
     public int newScope(int parent) {
@@ -866,24 +865,35 @@ public class ConsHeap {
 
     private boolean popScope(int scope) {
         int values = deref(pairGet(scope, "values"));
-        int result = pop(values);
+        int output = pop(values);
         int last_scope = pairGet(scope, "parentfr");
         if (last_scope == 0) {
-            pairSet(this.root, "result", result);
+            pairSet(this.root, "output", output);
             return false;
         }
         int last_stack = pairGet(last_scope, "stack");
-        if (result > 0) {
-            push(last_stack, result);
+        if (output > 0) {
+            push(last_stack, output);
         }
         pairSet(this.root, "scope", last_scope);
         reap(scope);
         return true;
     }
 
+    private void readInput(int stack) {
+        int input = pairGet(this.root, "input");
+        if (!isTrue(input)) {
+            return;
+        }
+        dump("input", input);
+        push(stack, input);
+        pairSet(this.root, "input", newCons());
+    }
+
     public boolean eval() {
         int scope = pairGet(this.root, "scope");
         int stack = pairGet(scope, "stack");
+        readInput(stack);
         if (empty(stack)) {
             return popScope(scope);
         }

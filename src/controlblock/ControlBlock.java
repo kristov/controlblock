@@ -26,7 +26,7 @@ public class ControlBlock {
                 int e = parser.parseBuffer(heap, reader);
                 heap.evalExpression(e);
                 if (!replMode) {
-                    int result = heap.result();
+                    int result = heap.getOutput();
                     System.out.println(heap.atomString(result));
                 }
             }
@@ -43,14 +43,14 @@ public class ControlBlock {
             String chunk = console.readLine();
             while (chunk != null) {
                 int e = parser.parseString(heap, chunk);
-                heap.pushStack(e);
+                heap.setInput(e);
                 heap.dumpScope();
                 console.readLine();
                 while (heap.eval()) {
                     heap.dumpScope();
                     console.readLine();
                 }
-                int result = heap.result();
+                int result = heap.getOutput();
                 heap.dump("<< ", result);
                 System.out.print(">> ");
                 chunk = console.readLine();
