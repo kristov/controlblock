@@ -890,6 +890,17 @@ public class ConsHeap {
         pairSet(this.root, "input", newCons());
     }
 
+    private boolean checkArgs(int e, int args, int values, int stack) {
+        int nr_values = length(values);
+        int nr_args = length(args);
+        if (nr_values < nr_args) {
+            push(stack, e);
+            push(stack, HALT("Nr. args not correct!"));
+            return false;
+        }
+        return true;
+    }
+
     public boolean eval() {
         int scope = pairGet(this.root, "scope");
         int stack = pairGet(scope, "stack");
@@ -920,6 +931,10 @@ public class ConsHeap {
         }
         if (symbolEq(car, "lambda")) {
             int body = cdr(cdr(car));
+            int args = cdr(car);
+            if (!checkArgs(e, args, values, stack)) {
+                return false;
+            }
             if (atom(body)) {
                 int val = dispatch(body, scope);
                 if (val > 0) {
@@ -928,7 +943,7 @@ public class ConsHeap {
                 reap(e);
                 return true;
             }
-            int arg = car(cdr(car));
+            int arg = car(args);
             while (arg != 0) {
                 int val = pop(values);
                 pairSet(vars, atomString(arg), val);
@@ -1012,6 +1027,12 @@ public class ConsHeap {
         }
         if (symbolEq(car, ".scope")) {
             push(values, copy(scope));
+            reap(e);
+            return true;
+        }
+        if (symbolEq(car, ".popstack")) {
+            int i = pop(stack);
+            reap(i);
             reap(e);
             return true;
         }
