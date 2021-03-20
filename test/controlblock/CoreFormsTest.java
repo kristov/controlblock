@@ -149,6 +149,10 @@ public class CoreFormsTest {
         ));
     }
 
+    @Test
+    public void testCustomScope() {
+        assertEquals("12", runString("(sym fnscope (quote (lambda (nstack) (progn ((rvar scope (listn 5 (listn 2 parentfr .scope) (listn 2 symbols .symbols) (listn 2 variables (quote ())) (listn 2 stack nstack) (listn 2 values .values))))))))"));
+    }
 /*
     @Test
     public void testJInt() {

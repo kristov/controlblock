@@ -506,6 +506,16 @@ public class ConsHeap {
         return quote(ret);
     }
 
+    private int rvar_e(int scope) {
+        int values = deref(pairGet(scope, "values"));
+        int name = pop(values);
+        int value = pop(values);
+        int ret = pairSet(this.root, atomString(name), copy(value));
+        reap(value);
+        reap(name);
+        return quote(ret);
+    }
+
     private int import_e(int scope) {
         int values = deref(pairGet(scope, "values"));
         int namespace = pop(values);
@@ -765,6 +775,7 @@ public class ConsHeap {
         addBuiltin(env, "car", list1(sym("list")), "car_e");
         addBuiltin(env, "cdr", list1(sym("list")), "cdr_e");
         addBuiltin(env, "var", list2(sym("name"), sym("value")), "var_e");
+        addBuiltin(env, "rvar", list2(sym("name"), sym("value")), "rvar_e");
         addBuiltin(env, "fscope", list1(sym("expression")), "fscope_e");
         addBuiltin(env, "symbind", list2(sym("expression"), sym("symbols")), "symbind_e");
         addBuiltin(env, "varbind", list2(sym("expression"), sym("variables")), "varbind_e");
@@ -817,6 +828,22 @@ public class ConsHeap {
 
     public int getRoot() {
         return this.root;
+    }
+
+    public int getNth(int list, int nth) {
+        if (atom(list)) {
+            return 0;
+        }
+        int c = 0;
+        int head = car(list);
+        while (head > 0) {
+            if (nth == c) {
+                return head;
+            }
+            head = cdr(head);
+            c++;
+        }
+        return 0;
     }
 
     public int getBuiltins() {
@@ -885,7 +912,6 @@ public class ConsHeap {
         if (!isTrue(input)) {
             return;
         }
-        dump("input", input);
         push(stack, input);
         pairSet(this.root, "input", newCons());
     }
@@ -1017,6 +1043,11 @@ public class ConsHeap {
         }
         if (symbolEq(car, ".variables")) {
             push(values, copy(vars));
+            reap(e);
+            return true;
+        }
+        if (symbolEq(car, ".values")) {
+            push(values, copy(values));
             reap(e);
             return true;
         }
