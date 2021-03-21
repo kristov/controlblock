@@ -1042,12 +1042,12 @@ public class ConsHeap {
             return true;
         }
         if (symbolEq(car, ".variables")) {
-            push(values, copy(vars));
+            push(values, ref(vars));
             reap(e);
             return true;
         }
         if (symbolEq(car, ".values")) {
-            push(values, copy(values));
+            push(values, ref(values));
             reap(e);
             return true;
         }
